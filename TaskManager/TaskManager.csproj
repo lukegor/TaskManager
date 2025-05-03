@@ -1,0 +1,73 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+	  <RootNamespace>Task_Manager</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+	  <OutputPath>$(SolutionDir)\bin\$(Configuration)-$(Platform)</OutputPath>
+  </PropertyGroup>
+
+	<PropertyGroup>
+		<OutputPath>$(SolutionDir)\bin\$(Configuration)</OutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="Resources\Icons\checkmark.ico" />
+	  <None Remove="Resources\Icons\crossmark.ico" />
+	  <None Remove="Resources\Icons\export-icon.ico" />
+	  <None Remove="Resources\Icons\priorities-icon.ico" />
+	  <None Remove="Resources\Icons\question-mark.ico" />
+	  <None Remove="Resources\Icons\refresh.ico" />
+	  <None Remove="Resources\Icons\skull-icon.ico" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+    <PackageReference Include="NtApiDotNet" Version="1.1.33" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\Icons\checkmark.ico" />
+    <Resource Include="Resources\Icons\crossmark.ico" />
+    <Resource Include="Resources\Icons\export-icon.ico" />
+    <Resource Include="Resources\Icons\priorities-icon.ico" />
+    <Resource Include="Resources\Icons\question-mark.ico" />
+    <Resource Include="Resources\Icons\refresh.ico" />
+    <Resource Include="Resources\Icons\skull-icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+    <Compile Update="Resources\Strings.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Strings.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Strings.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+</Project>
