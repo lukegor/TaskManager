@@ -7,17 +7,13 @@
         xmlns:local="clr-namespace:Task_Manager"
         d:DataContext="{d:DesignInstance Type=viewModels:MainWindowViewModel}"
 		xmlns:viewModels="clr-namespace:Task_Manager.ViewModels"
-		xmlns:models="clr-namespace:Task_Manager.Models"
+		xmlns:models="clr-namespace:TaskManager.Domain.Models;assembly=TaskManager.Domain"
 		xmlns:controls="clr-namespace:Task_Manager.UI.Controls"
 		xmlns:b="clr-namespace:Task_Manager.UI.Behaviors"
-        xmlns:resx="clr-namespace:Task_Manager.Resources"
+        xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
         >
-
-	<Window.DataContext>
-		<viewModels:MainWindowViewModel/>
-	</Window.DataContext>
 
     <Window.Resources>
     </Window.Resources>

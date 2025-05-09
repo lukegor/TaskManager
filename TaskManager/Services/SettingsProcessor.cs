@@ -1,17 +1,17 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using Task_Manager.Properties;
-using Task_Manager.Resources;
-using Task_Manager.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using TaskManager.Utility.Utility;
+using TaskManager.Shared.Resources.Languages;
 
 namespace Task_Manager.Services
 {
-    internal class SettingsProcessor : ObservableObject
+    public class SettingsProcessor : ObservableObject
     {
         private string language;
         public string Language

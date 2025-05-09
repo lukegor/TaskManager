@@ -2,7 +2,6 @@
 using CommunityToolkit.Mvvm.Input;
 using Task_Manager.Properties;
 using Task_Manager.Services;
-using Task_Manager.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using TaskManager.Utility.Utility;
 
 namespace Task_Manager.ViewModels
 {

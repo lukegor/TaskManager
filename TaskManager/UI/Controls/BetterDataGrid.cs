@@ -1,6 +1,4 @@
-﻿using Task_Manager.Models;
-using Task_Manager.Resources;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -9,6 +7,8 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using TaskManager.Domain.Models;
+using TaskManager.Shared.Resources.Languages;
 
 namespace Task_Manager.UI.Controls
 {

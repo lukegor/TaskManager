@@ -1,5 +1,4 @@
-﻿using Task_Manager.Models;
-using Microsoft.Xaml.Behaviors;
+﻿using Microsoft.Xaml.Behaviors;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +8,8 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows;
-using Task_Manager.Utility;
+using TaskManager.Domain.Models;
+using TaskManager.Utility.Utility;
 
 namespace Task_Manager.UI.Behaviors
 {

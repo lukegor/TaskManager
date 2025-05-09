@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows;
 using System.Windows.Controls;
-using Task_Manager.Resources;
+using TaskManager.Shared.Resources.Languages;
 
 namespace Task_Manager.UI.Controls
 {
