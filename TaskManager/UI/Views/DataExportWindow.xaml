@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Task_Manager.UI.Views"
         d:DataContext="{d:DesignInstance Type=viewModels:DataExportWindowViewModel}"
         xmlns:viewModels="clr-namespace:Task_Manager.ViewModels"
-        xmlns:resx="clr-namespace:Task_Manager.Resources"
+        xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
 		mc:Ignorable="d"
         Title="DataExportWindow" Height="200" Width="400"
         ResizeMode="CanMinimize">

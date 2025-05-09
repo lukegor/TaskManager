@@ -6,8 +6,8 @@
         xmlns:local="clr-namespace:Task_Manager.UI.Views"
         d:DataContext="{d:DesignInstance Type=viewModels:SetPriorityWindowViewModel}"
         xmlns:viewModels="clr-namespace:Task_Manager.ViewModels"
-        xmlns:converters="clr-namespace:Task_Manager.Utility.Converters"
-        xmlns:resx="clr-namespace:Task_Manager.Resources"
+        xmlns:converters="clr-namespace:TaskManager.Utility.Utility.Converters;assembly=TaskManager.Utility"
+        xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
         mc:Ignorable="d"
         Title="SetPriorityWindow" Height="140" Width="300">
     <Window.Resources>

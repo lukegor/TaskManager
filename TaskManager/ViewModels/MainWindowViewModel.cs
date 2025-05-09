@@ -1,7 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Task_Manager.Models;
-using Task_Manager.Services;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
@@ -16,19 +14,24 @@ using System.Text;
 using System.Windows.Threading;
 using System.Net.Sockets;
 using System.Reflection;
-using Task_Manager.Utility;
 using MouseButtonEventArgs = System.Windows.Input.MouseButtonEventArgs;
 using Task_Manager.Services.Data_Export;
 using Task_Manager.UI.Views;
-using Task_Manager.Resources;
+using Microsoft.Extensions.DependencyInjection;
+using TaskManager.Domain.Services;
+using TaskManager.Domain.Models;
+using TaskManager.Utility.Utility;
+using TaskManager.Shared.Resources.Languages;
+using Task_Manager.Services.Factories;
 
 namespace Task_Manager.ViewModels
 {
-    internal class MainWindowViewModel : ObservableObject
+    public class MainWindowViewModel : ObservableObject
     {
         #region ALL_FIELDS
         // services
-        private readonly ProcessManager _processManager = new ProcessManager();
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ProcessManager _processManager;
 
         // icon paths
         // ...
@@ -116,8 +119,11 @@ namespace Task_Manager.ViewModels
         #endregion
         #endregion
 
-        public MainWindowViewModel()
+        public MainWindowViewModel(IServiceProvider serviceProvider, ProcessManager processManager)
         {
+            _serviceProvider = serviceProvider;
+            _processManager = processManager;
+
             BindFunctionsToCommands();
 
             // load running processes asynchronously
@@ -156,8 +162,9 @@ namespace Task_Manager.ViewModels
 
 		private void Export()
 		{
-            DataExportWindow exportWindow = new DataExportWindow();
-            exportWindow.DataContext = new DataExportWindowViewModel(_processManager.Processes.Select(x => x.Process));
+            DataExportWindow exportWindow = _serviceProvider.GetRequiredService<DataExportWindow>();
+            var processes = _processManager.Processes.Select(x => x.Process);
+            exportWindow.DataContext = _serviceProvider.GetRequiredService<DataExportViewModelFactory>().Create(processes);
 
             exportWindow.ShowDialog();
 		}

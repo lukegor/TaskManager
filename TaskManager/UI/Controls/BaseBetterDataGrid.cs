@@ -10,7 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows;
 using System.Collections;
-using Task_Manager.Utility;
+using TaskManager.Utility.Utility;
 
 namespace Task_Manager.UI.Controls
 {

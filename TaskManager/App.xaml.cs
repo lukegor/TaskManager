@@ -1,13 +1,19 @@
-﻿using System.Diagnostics;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Media;
 using System.Security.Cryptography;
 using Task_Manager.UI.Views;
 using Task_Manager.Services;
-using Task_Manager.Utility;
 using System.Runtime.InteropServices;
 using System.Globalization;
 using Task_Manager.Properties;
+using Microsoft.Extensions.DependencyInjection;
+using Task_Manager.ViewModels;
+using Task_Manager.Services.Data_Export;
+using TaskManager.Domain.Services;
+using TaskManager.Domain.Services.Utility;
+using TaskManager.Utility.Utility;
+using TaskManager.Domain;
+using Task_Manager.Services.Factories;
 
 namespace Task_Manager
 {
@@ -18,10 +24,17 @@ namespace Task_Manager
     /// </summary>
     public partial class App : Application
     {
+        private IServiceProvider _serviceProvider;
+
         public static event App_Close App_Close;
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            var serviceCollection = new ServiceCollection();
+            ConfigureServices(serviceCollection);
+
+            _serviceProvider = serviceCollection.BuildServiceProvider();
+
             SetLanguage();
 
             base.OnStartup(e);
@@ -55,9 +68,44 @@ namespace Task_Manager
             System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
         }
 
+        private void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSingleton<IAppSettings, WpfAppSettings>();
+
+            // Register Services
+            services.AddSingleton<SettingsProcessor>();
+            services.AddSingleton<ProcessManager>();
+            services.AddSingleton<TimerManager>();
+            services.AddTransient<FolderSelector>();
+
+            services.AddSingleton<IDispatcherService, WpfDispatcherService>();
+
+            services.AddSingleton<DataExporterFactory>(); // services.AddTransient<DataExporterFactory>();
+            services.AddTransient<DataExportViewModelFactory>();
+
+            // Register ViewModels
+            services.AddSingleton<MainWindowViewModel>();
+            //services.AddTransient<SetPriorityWindowViewModel>();
+            //services.AddTransient<DataExportWindowViewModel>();
+            //services.AddTransient<SettingsWindowViewModel>();
+
+            // Register Views
+            services.AddSingleton<MainWindow>(sp =>
+            {
+                return new MainWindow
+                {
+                    DataContext = sp.GetRequiredService<MainWindowViewModel>()
+                };
+            });
+
+            //services.AddTransient<SetPriorityWindow>();
+            services.AddTransient<DataExportWindow>();
+            //services.AddTransient<SettingsWindow>();
+        }
+
         private void LaunchGUI() {
-            MainWindow mainWindow = new MainWindow();
-            MainWindow.Show();
+            MainWindow mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
         }
 
         private void Application_Exit(object sender, ExitEventArgs e) {
@@ -66,8 +114,8 @@ namespace Task_Manager
 
         internal void Restart()
         {
-            var currentExecutablePath = Process.GetCurrentProcess().MainModule.FileName;
-            Process.Start(currentExecutablePath);
+            var currentExecutablePath = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            System.Diagnostics.Process.Start(currentExecutablePath);
             Application.Current.Shutdown();
         }
     }

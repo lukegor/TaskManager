@@ -7,17 +7,19 @@ using System.Windows;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Task_Manager.Models;
-using Task_Manager.Resources;
+using Microsoft.Extensions.DependencyInjection;
 using Task_Manager.Services;
 using Task_Manager.Services.Data_Export;
-using Task_Manager.Services.Utility;
 using Task_Manager.UI.Views;
-using Task_Manager.Utility;
+using TaskManager.Domain;
+using TaskManager.Domain.Models;
+using TaskManager.Domain.Services.Utility;
+using TaskManager.Shared.Resources.Languages;
+using TaskManager.Utility.Utility;
 
 namespace Task_Manager.ViewModels
 {
-	internal class DataExportWindowViewModel : ObservableObject
+	public class DataExportWindowViewModel : ObservableObject
 	{
 		#region All_Fields
 		private readonly FolderSelector _folderSelector = new FolderSelector();
@@ -67,6 +69,9 @@ namespace Task_Manager.ViewModels
 		public ICommand OnConfirmClick { get; }
 		#endregion
 
+		private readonly IServiceProvider _serviceProvider;
+        private readonly IAppSettings _settings;
+
 		public DataExportWindowViewModel()
 		{
 			SelectFolderCommand = new RelayCommand(_folderSelector.SelectFolder);
@@ -75,9 +80,11 @@ namespace Task_Manager.ViewModels
 			_folderSelector.PropertyChanged += FolderSelector_PropertyChanged;
 		}
 
-		public DataExportWindowViewModel(IEnumerable<Process> processes) : this()
+		public DataExportWindowViewModel(IServiceProvider serviceProvider, IAppSettings settings, IEnumerable<Process> processes) : this()
 		{
-			this.processes = processes;
+            _serviceProvider = serviceProvider;
+            _settings = settings;
+            this.processes = processes;
 		}
 
 		private void OnConfirm()
@@ -97,7 +104,7 @@ namespace Task_Manager.ViewModels
 
 		private void ExportData()
 		{
-			var exporter = DataExporterFactory.CreateDataExporter((DataType)dataType);
+            var exporter = _serviceProvider.GetRequiredService<DataExporterFactory>().CreateDataExporter((DataType)dataType);
 			switch (Exportation)
 			{
 				case ExportationType.Processes:

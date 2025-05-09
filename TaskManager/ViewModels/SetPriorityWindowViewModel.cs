@@ -1,9 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Task_Manager.Resources;
-using Task_Manager.Services;
 using Task_Manager.UI.Views;
-using Task_Manager.Utility;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,6 +9,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using TaskManager.Domain.Services;
+using TaskManager.Utility.Utility;
+using TaskManager.Shared.Resources.Languages;
 
 namespace Task_Manager.ViewModels
 {
