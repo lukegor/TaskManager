@@ -8,11 +8,11 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using ClosedXML.Excel;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Utility.Utility;
 
-namespace Task_Manager.Services.Data_Export
+namespace TaskManager.Services.Data_Export
 {
     public class ExcelExporter : BaseDataExporter
     {

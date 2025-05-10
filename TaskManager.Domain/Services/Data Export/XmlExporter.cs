@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.Serialization;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Utility.Utility;
 
-namespace Task_Manager.Services.Data_Export
+namespace TaskManager.Services.Data_Export
 {
 	public class XmlExporter : BaseDataExporter
 	{

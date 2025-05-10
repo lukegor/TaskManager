@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 
-namespace Task_Manager.Services.Data_Export
+namespace TaskManager.Services.Data_Export
 {
 	public class JsonExporter : BaseDataExporter
 	{

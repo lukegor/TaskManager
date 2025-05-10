@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Threading;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Utility.Utility;
 
@@ -31,10 +31,6 @@ namespace TaskManager.Domain.Services
         {
             get { return processes.Count; }
             set { SetProperty(ref processCount, value); }
-        }
-
-        public List<ProcessItem> GetProcessList() {
-            return processes.ToList();
         }
 
         private readonly IDispatcherService _dispatcher;
@@ -109,7 +105,7 @@ namespace TaskManager.Domain.Services
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now}] REFRESHING processes");
             List<Process> actualProcesses = await Task.Run(() => GetProcesses().ToList());
 
-            List<ProcessItem> deletedProcesses = GetProcessList()
+            List<ProcessItem> deletedProcesses = Processes
                 .Where(existingProcess => !actualProcesses.Any(p => p.Pid == existingProcess.Process.Pid))
                 .ToList();
 
