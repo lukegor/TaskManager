@@ -134,21 +134,23 @@ namespace TaskManager.Domain.Services
             }
         }
 
-        public void TerminateProcesses(IEnumerable<System.Diagnostics.Process> selectedProcesses)
+        public void TerminateProcesses(IEnumerable<int> selectedProcesses)
         {
-            foreach (var process in selectedProcesses)
+            foreach (var pId in selectedProcesses)
             {
+                var process = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(pId));
                 process.Kill();
-                System.Diagnostics.Debug.WriteLine($"Process {process.Id} was terminated");
+                System.Diagnostics.Debug.WriteLine($"Process {pId} was terminated");
             }
         }
 
-        public void SetPriority(IEnumerable<System.Diagnostics.Process> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
+        public void SetPriority(IEnumerable<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
         {
-            foreach (var process in selectedProcesses)
+            foreach (var pId in selectedProcesses)
             {
+                var process = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(pId));
                 process.PriorityClass = priority;
-                var storedProcess = Processes.FirstOrDefault(p => p.Process.Pid == process.Id).Process;
+                var storedProcess = Processes.FirstOrDefault(p => p.Process.Pid == pId).Process;
                 storedProcess.Priority = PriorityTypeHelper.GetBasePriority(priority);
                 System.Diagnostics.Debug.WriteLine($"Process {process.Id} priority set to {priority}");
             }
@@ -220,7 +222,7 @@ namespace TaskManager.Domain.Services
             else
             {
                 int errorCode = Marshal.GetLastWin32Error();
-                System.Diagnostics.Debug.WriteLine($"IsWow64Process failed to determine process bitness.\nError code: {errorCode}");
+                System.Diagnostics.Debug.WriteLine($"IsWow64Process failed to determine pId bitness.\nError code: {errorCode}");
                 return false;
             }
         }

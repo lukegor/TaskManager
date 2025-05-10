@@ -180,19 +180,12 @@ namespace TaskManager.ViewModels
             {
                 return;
             }
-
-            List<System.Diagnostics.Process> processes = new List<System.Diagnostics.Process>();
-            foreach (var process in GetSelectedProcesses())
-            {
-                processes.Add(System.Diagnostics.Process.GetProcessById(Convert.ToInt32(process.Process.Pid)));
-            }
-
             if (MessageBox.Show(Strings.AskingForConfirmation, Strings.Confirm, MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.Cancel)
             {
                 return;
             }
 
-            _processManager.TerminateProcesses(processes);
+            _processManager.TerminateProcesses(GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)));
         }
 
         private void SetPriority()
@@ -202,14 +195,8 @@ namespace TaskManager.ViewModels
                 return;
             }
 
-            List<System.Diagnostics.Process> processes = new List<System.Diagnostics.Process>();
-            foreach (var process in GetSelectedProcesses())
-            {
-                processes.Add(System.Diagnostics.Process.GetProcessById(Convert.ToInt32(process.Process.Pid)));
-            }
-
             var factory = _serviceProvider.GetRequiredService<SetPriorityVVmFactory>();
-            SetPriorityWindow setPriorityWindow = factory.Create(processes);
+            SetPriorityWindow setPriorityWindow = factory.Create(GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)));
 
             setPriorityWindow.ShowDialog();
         }
