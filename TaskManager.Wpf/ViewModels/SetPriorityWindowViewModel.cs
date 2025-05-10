@@ -28,30 +28,30 @@ namespace TaskManager.ViewModels
 
         public ICommand OnConfirmCommand { get; private set; }
 
-        public ProcessManager ProcessManager { get; set; }
+        private readonly ProcessManager _processManager;
 
-        public IEnumerable<System.Diagnostics.Process> Processes { get; set; }
+        private readonly IEnumerable<int> _processIds;
 
         private SetPriorityWindowViewModel()
         {
             OnConfirmCommand = new RelayCommand(OnConfirm);
         }
 
-        public SetPriorityWindowViewModel(ProcessManager processManager, IEnumerable<System.Diagnostics.Process> processes) : this()
+        public SetPriorityWindowViewModel(ProcessManager processManager, IEnumerable<int> processes) : this()
         {
-            ProcessManager = processManager;
-            this.Processes = processes;
+            _processManager = processManager;
+            this._processIds = processes;
         }
 
         private void OnConfirm()
         {
             if (Priority == null)
             {
-                MessageBox.Show("Select", Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(Strings.Select, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            ProcessManager.SetPriority(Processes, (ProcessPriorityClass)Priority);
+            _processManager.SetPriority(_processIds, (ProcessPriorityClass)Priority);
 
             var window = App.Current.Windows.OfType<SetPriorityWindow>().FirstOrDefault(x => x.DataContext == this);
             window?.Close();
