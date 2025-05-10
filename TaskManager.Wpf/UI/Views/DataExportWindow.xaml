@@ -1,0 +1,54 @@
+﻿<Window x:Class="TaskManager.UI.Views.DataExportWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:TaskManager.UI.Views"
+        d:DataContext="{d:DesignInstance Type=viewModels:DataExportWindowViewModel}"
+        xmlns:viewModels="clr-namespace:TaskManager.ViewModels"
+        xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
+		mc:Ignorable="d"
+        Title="DataExportWindow" Height="200" Width="400"
+        ResizeMode="CanMinimize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+		</Grid.ColumnDefinitions>
+
+        <TextBlock Text="{Binding Source={x:Static resx:Strings.Exportation}, StringFormat='{}{0}:', Mode=OneTime}"
+                   Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+		<ComboBox SelectedItem="{Binding Exportation, Mode=OneWayToSource}" ItemsSource="{Binding Exportations}"
+		          MinWidth="80" Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+		          ToolTip="{Binding (Validation.Errors)[0].ErrorContent, RelativeSource={RelativeSource Self}}" />
+
+        <TextBlock Text="{Binding Source={x:Static resx:Strings.ExportFormat}, StringFormat='{}{0}:', Mode=OneTime}"
+                   Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+		<ComboBox SelectedItem="{Binding DataType, Mode=OneWayToSource}" ItemsSource="{Binding Extensions}"
+	              MinWidth="70" Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+
+        <TextBox Text="{Binding DirPath}"
+		         MinWidth="80" Width="160" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center"
+		         HorizontalScrollBarVisibility="Auto"
+                 TextWrapping="NoWrap"
+                 IsReadOnly="True" Cursor="Arrow">
+            <TextBox.Resources>
+                <Style x:Key="SmallHorizontalScrollBar" TargetType="{x:Type ScrollBar}">
+                    <Setter Property="Height" Value="8"/>
+                </Style>
+            </TextBox.Resources>
+        </TextBox>
+        <Button Content="{x:Static resx:Strings.SelectFolder}" Grid.Column="1" Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                Command="{Binding SelectFolderCommand}"/>
+
+		<Grid Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,5">
+            <Button Command="{Binding OnConfirmClick}" Content="{x:Static resx:Strings.Confirm}" HorizontalAlignment="Center" IsDefault="True"/>
+		</Grid>
+    </Grid>
+</Window>

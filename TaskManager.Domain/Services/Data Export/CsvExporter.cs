@@ -7,9 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using TaskManager.Domain.Models;
 using Microsoft.VisualBasic;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 
-namespace Task_Manager.Services.Data_Export
+namespace TaskManager.Services.Data_Export
 {
     public class CsvExporter : BaseDataExporter
     {

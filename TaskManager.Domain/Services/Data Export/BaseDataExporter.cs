@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
-namespace Task_Manager.Services
+namespace TaskManager.Services
 {
     public abstract class BaseDataExporter
     {

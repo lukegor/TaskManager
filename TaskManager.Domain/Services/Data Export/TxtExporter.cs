@@ -4,10 +4,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TaskManager.Domain;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
-namespace Task_Manager.Services.Data_Export
+namespace TaskManager.Services.Data_Export
 {
     public class TxtExporter : BaseDataExporter
     {
