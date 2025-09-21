@@ -3,11 +3,7 @@ using NtApiDotNet;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Globalization;
 using System.Runtime.InteropServices;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Threading;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Utility.Utility;
@@ -20,10 +16,7 @@ namespace TaskManager.Domain.Services
         public ObservableCollection<ProcessItem> Processes
         {
             get { return processes; }
-            set
-            {
-                SetProperty(ref processes, value);
-            }
+            set { SetProperty(ref processes, value); }
         }
 
         private int processCount;
@@ -40,9 +33,9 @@ namespace TaskManager.Domain.Services
         // Event handler to update the field when the setting changes.
         private void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(_settings.RefreshRate))
+            if (e.PropertyName == nameof(_settings.RefreshFrequency))
             {
-                var mappingKey = (RefreshFrequencyType)_settings.RefreshRate;
+                var mappingKey = (RefreshFrequencyType)_settings.RefreshFrequency;
                 _timer.UpdatePolling(RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping[mappingKey]);
             }
         }
@@ -54,47 +47,46 @@ namespace TaskManager.Domain.Services
             _timer = timerManager;
 
             Processes.CollectionChanged += Processes_CollectionChanged;
-            _settings.SettingChanged += Default_PropertyChanged;
 
             _timer.Elapsed += OnProcessPolling;
         }
 
-		public void Processes_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        public void Processes_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             ProcessCount = Processes.Count;
             OnPropertyChanged(nameof(Processes));
-		}
+        }
 
         /// <summary>
         ///
         /// </summary>
         /// <remarks>It's much faster thanks to asynchronous loading</remarks>
-        public async void LoadProcesses()
+        public async Task LoadProcesses()
         {
-            var processList = await Task.Run(() => GetProcesses());
+            var processList = await Task.Run(() => GetProcesses()).ConfigureAwait(false);
 
             foreach (var process in processList)
             {
-	            Processes.Add(new ProcessItem(process));
+                Processes.Add(new ProcessItem(process));
             }
         }
 
-		public void StartPollingProcesses()
-		{
+        public void StartPollingProcesses()
+        {
             _timer.Start();
-		}
+        }
 
-		private async void OnProcessPolling(object sender, System.Timers.ElapsedEventArgs e)
-		{
+        private async void OnProcessPolling(object sender, System.Timers.ElapsedEventArgs e)
+        {
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now}] Polling");
-            await PerformRefresh(sender);
-		}
+            await PerformRefresh(isUserInitiated: false);
+        }
 
-        public async Task PerformRefresh(object sender)
+        public async Task PerformRefresh(bool isUserInitiated)
         {
             await Refresh();
 
-            if (sender is Button b)
+            if (isUserInitiated)
             {
                 _timer.Restart();
             }
@@ -154,12 +146,6 @@ namespace TaskManager.Domain.Services
                 storedProcess.Priority = PriorityTypeHelper.GetBasePriority(priority);
                 System.Diagnostics.Debug.WriteLine($"Process {process.Id} priority set to {priority}");
             }
-
-            _dispatcher.Invoke(() =>
-            {
-                var view = CollectionViewSource.GetDefaultView(Processes);
-                view?.Refresh();
-            });
         }
 
         /// <summary>

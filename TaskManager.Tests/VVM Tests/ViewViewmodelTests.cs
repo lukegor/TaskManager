@@ -1,0 +1,50 @@
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using System.Reflection;
+using System.Windows;
+
+namespace TaskManager.Tests.VVM_Tests
+{
+    public class ViewViewmodelTests
+    {
+        private readonly Assembly _viewAssembly = typeof(TaskManager.UI.Views.MainWindow).Assembly;
+        private readonly Assembly _vmAssembly = typeof(TaskManager.ViewModels.MainWindowViewModel).Assembly;
+
+        private Type[] GetAllWindows() =>
+            _viewAssembly.GetTypes()
+                         .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(Window)) && t.Namespace == "TaskManager.UI.Views")
+                         .ToArray();
+
+        private Type[] GetAllViewModels() =>
+            _vmAssembly.GetTypes()
+                       .Where(t => t.IsClass && !t.IsAbstract && t.IsSubclassOf(typeof(ObservableObject)) && t.Namespace == "TaskManager.ViewModels")
+                       .ToArray();
+
+        [Fact]
+        public void EveryWindowHasCorrespondingViewModel()
+        {
+            var windows = GetAllWindows();
+            var viewModels = GetAllViewModels();
+
+            foreach (var window in windows)
+            {
+                var expectedVmName = window.Name + "ViewModel";
+                Assert.Contains(viewModels, vm => vm.Name == expectedVmName);
+            }
+        }
+
+        [Fact]
+        public void EveryViewModelHasCorrespondingWindow()
+        {
+            var windows = GetAllWindows();
+            var viewModels = GetAllViewModels();
+
+            foreach (var vm in viewModels)
+            {
+                if (!vm.Name.EndsWith("ViewModel")) continue;
+
+                var expectedWindowName = vm.Name.Replace("ViewModel", "");
+                Assert.Contains(windows, w => w.Name == expectedWindowName);
+            }
+        }
+    }
+}

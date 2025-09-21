@@ -196,6 +196,17 @@ namespace TaskManager.Shared.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Loading personalized settings failed.
+        ///
+        ///Start loading default settings....
+        /// </summary>
+        public static string LoadingSettingsFailed {
+            get {
+                return ResourceManager.GetString("LoadingSettingsFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Low.
         /// </summary>
         public static string Low {

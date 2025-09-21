@@ -1,5 +1,4 @@
 ﻿using System.Text.Json.Serialization;
-using System.Xml.Serialization;
 using TaskManager.Utility.Utility;
 
 namespace TaskManager.Domain.Models

@@ -1,18 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+﻿using ClosedXML.Excel;
 using System.Reflection;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using System.Xml.Serialization;
-using ClosedXML.Excel;
 using TaskManager.Domain.Abstractions;
-using TaskManager.Domain.Models;
 using TaskManager.Utility.Utility;
 
-namespace TaskManager.Services.Data_Export
+namespace TaskManager.Domain.Services.Data_Export
 {
     public class ExcelExporter : BaseDataExporter
     {

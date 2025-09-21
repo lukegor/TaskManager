@@ -1,12 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Text;
+﻿using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
 using TaskManager.Domain.Abstractions;
 
-namespace TaskManager.Services.Data_Export
+namespace TaskManager.Domain.Services.Data_Export
 {
 	public class JsonExporter : BaseDataExporter
 	{

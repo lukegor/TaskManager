@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TaskManager.Shared.Resources.Languages;
+﻿using TaskManager.Shared.Resources.Languages;
 
 namespace TaskManager.Utility.Utility
 {
+    /// <summary>
+    /// Specifies the frequency at which a refresh operation occurs for processes
+    /// </summary>
     public enum RefreshFrequencyType
     {
         High,

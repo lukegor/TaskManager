@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TaskManager.Domain.Abstractions;
+﻿using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
-namespace TaskManager.Services
+namespace TaskManager.Domain.Services.Data_Export
 {
     public abstract class BaseDataExporter
     {
         protected const string FileNamePrefix = @"\record-";
-        protected string DateTime => _settings.TimeStampFormat;
+        protected string DateTime => _settings.DateTimeFormat;
         protected abstract string Extension { get; }
 
         private readonly IAppSettings _settings;

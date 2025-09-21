@@ -247,4 +247,9 @@
   <data name="Terminate" xml:space="preserve">
     <value>Terminuj</value>
   </data>
+  <data name="LoadingSettingsFailed" xml:space="preserve">
+    <value>Nie udało się wczytać spersonalizowanych ustawień.
+
+Wczytywanie ustawień domyślnych...</value>
+  </data>
 </root>

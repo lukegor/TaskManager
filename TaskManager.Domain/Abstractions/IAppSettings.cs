@@ -1,18 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using TaskManager.Utility.Utility;
 
 namespace TaskManager.Domain.Abstractions
 {
     public interface IAppSettings
     {
-        int RefreshRate { get; }
-        string TimeStampFormat { get; }
-        // Add more as needed
-
-        event PropertyChangedEventHandler? SettingChanged;
+        string Language { get; }
+        RefreshFrequencyType RefreshFrequency { get; }
+        string DateTimeFormat { get; }
     }
 }

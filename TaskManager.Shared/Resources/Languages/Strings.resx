@@ -246,4 +246,9 @@
   <data name="Terminate" xml:space="preserve">
     <value>Terminate</value>
   </data>
+  <data name="LoadingSettingsFailed" xml:space="preserve">
+    <value>Loading personalized settings failed.
+
+Start loading default settings...</value>
+  </data>
 </root>

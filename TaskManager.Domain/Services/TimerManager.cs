@@ -1,4 +1,3 @@
-using System;
 using System.Timers;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Utility.Utility;
@@ -8,7 +7,7 @@ namespace TaskManager.Domain.Services
 {
     public class TimerManager : IDisposable
     {
-        private Timer _timer;
+        private readonly Timer _timer;
 
         public event ElapsedEventHandler Elapsed;
 
@@ -38,7 +37,7 @@ namespace TaskManager.Domain.Services
 
             _timer = new Timer();
             Interval = MilisecondMultiplier * RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping
-                [(RefreshFrequencyType)_settings.RefreshRate];
+                [(RefreshFrequencyType)_settings.RefreshFrequency];
             _timer.Elapsed += OnTimerElapsed;
         }
 

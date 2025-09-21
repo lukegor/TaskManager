@@ -1,15 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TaskManager.Domain.Models;
-using Microsoft.VisualBasic;
+﻿using System.IO;
 using TaskManager.Domain.Abstractions;
 
-namespace TaskManager.Services.Data_Export
+namespace TaskManager.Domain.Services.Data_Export
 {
     public class CsvExporter : BaseDataExporter
     {

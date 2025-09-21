@@ -1,16 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
-using System.Xml.Linq;
-using System.Xml.Serialization;
+﻿using System.Xml.Linq;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Utility.Utility;
 
-namespace TaskManager.Services.Data_Export
+namespace TaskManager.Domain.Services.Data_Export
 {
 	public class XmlExporter : BaseDataExporter
 	{

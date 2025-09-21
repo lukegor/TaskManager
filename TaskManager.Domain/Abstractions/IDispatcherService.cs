@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace TaskManager.Domain.Abstractions
+﻿namespace TaskManager.Domain.Abstractions
 {
+    /// <summary>
+    /// Abstraction over <see cref="System.Windows.Application.Current.Dispatcher"/>
+    /// </summary>
     public interface IDispatcherService
     {
         void Invoke(Action action);
