@@ -12,14 +12,46 @@ namespace TaskManager.Tests.UI_Controls
 
         public ClipboardCopyTests()
         {
-            _previousClipboard = Clipboard.GetText();
+            _previousClipboard = GetTextWithRetry();
         }
 
         public void Dispose()
         {
             if (_previousClipboard.Length > 0)
             {
-                Clipboard.SetText(_previousClipboard);
+                SetTextWithRetry(_previousClipboard);
+            }
+        }
+
+        // the test process shares the live system clipboard with other apps; brief contention is normal
+        private static string GetTextWithRetry()
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    return Clipboard.GetText();
+                }
+                catch (System.Runtime.InteropServices.COMException) when (attempt < 10)
+                {
+                    Thread.Sleep(50);
+                }
+            }
+        }
+
+        private static void SetTextWithRetry(string text)
+        {
+            for (int attempt = 0; ; attempt++)
+            {
+                try
+                {
+                    Clipboard.SetText(text);
+                    return;
+                }
+                catch (System.Runtime.InteropServices.COMException) when (attempt < 10)
+                {
+                    Thread.Sleep(50);
+                }
             }
         }
 
@@ -47,7 +79,7 @@ namespace TaskManager.Tests.UI_Controls
             string expected = string.Join(Environment.NewLine,
                 items[0].Process.ToDelimitedString('\t'),
                 items[2].Process.ToDelimitedString('\t'));
-            Assert.Equal(expected, Clipboard.GetText());
+            Assert.Equal(expected, GetTextWithRetry());
         }
 
         [WpfFact]
@@ -60,7 +92,7 @@ namespace TaskManager.Tests.UI_Controls
 
             BetterDataGrid.CopyRowsCommand.Execute(null, grid);
 
-            Assert.Equal(items[1].ToString(), Clipboard.GetText());
+            Assert.Equal(items[1].ToString(), GetTextWithRetry());
         }
     }
 }

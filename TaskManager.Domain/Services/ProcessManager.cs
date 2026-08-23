@@ -140,11 +140,21 @@ namespace TaskManager.Domain.Services
         {
             foreach (var pId in selectedProcesses)
             {
-                var process = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(pId));
-                process.PriorityClass = priority;
-                var storedProcess = Processes.FirstOrDefault(p => p.Process.Pid == pId).Process;
-                storedProcess.Priority = PriorityTypeHelper.GetBasePriority(priority);
-                System.Diagnostics.Debug.WriteLine($"Process {process.Id} priority set to {priority}");
+                try
+                {
+                    var process = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(pId));
+                    process.PriorityClass = priority;
+                }
+                catch (ArgumentException)
+                {
+                    // process exited between selection and confirmation; no OS-side update possible
+                }
+
+                var storedItem = Processes.FirstOrDefault(p => p.Process.Pid == pId);
+                if (storedItem != null)
+                {
+                    storedItem.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
+                }
             }
         }
 
