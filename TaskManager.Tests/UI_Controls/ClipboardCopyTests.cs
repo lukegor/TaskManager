@@ -61,7 +61,7 @@ namespace TaskManager.Tests.UI_Controls
             List<ProcessItem> items = GridTestHost.CreateItems(("a", 1), ("b", 2));
             BetterDataGrid grid = GridTestHost.CreateGrid(items);
 
-            Assert.False(BetterDataGrid.CopyRowsCommand.CanExecute(null, grid));
+            BetterDataGrid.CopyRowsCommand.CanExecute(null, grid).ShouldBeFalse();
         }
 
         [WpfFact]
@@ -79,7 +79,7 @@ namespace TaskManager.Tests.UI_Controls
             string expected = string.Join(Environment.NewLine,
                 items[0].Process.ToDelimitedString('\t'),
                 items[2].Process.ToDelimitedString('\t'));
-            Assert.Equal(expected, GetTextWithRetry());
+            GetTextWithRetry().ShouldBe(expected);
         }
 
         [WpfFact]
@@ -92,7 +92,8 @@ namespace TaskManager.Tests.UI_Controls
 
             BetterDataGrid.CopyRowsCommand.Execute(null, grid);
 
-            Assert.Equal(items[1].ToString(), GetTextWithRetry());
+            GetTextWithRetry().ShouldBe(items[1].ToString());
         }
     }
 }
+

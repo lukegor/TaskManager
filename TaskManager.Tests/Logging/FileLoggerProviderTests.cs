@@ -17,11 +17,11 @@ namespace TaskManager.Tests
             logger.LogInformation("hello {Name}", "world");
 
             var file = Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log");
-            Assert.True(File.Exists(file));
+            File.Exists(file).ShouldBeTrue();
             var content = File.ReadAllText(file);
-            Assert.Contains("hello world", content);
-            Assert.Contains("[Information]", content);
-            Assert.Contains("Test.Category", content);
+            content.ShouldContain("hello world");
+            content.ShouldContain("[Information]");
+            content.ShouldContain("Test.Category");
         }
 
         [Fact]
@@ -33,8 +33,8 @@ namespace TaskManager.Tests
             logger.LogError(new InvalidOperationException("boom"), "op failed");
 
             var content = File.ReadAllText(Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log"));
-            Assert.Contains("boom", content);
-            Assert.Contains("[Error]", content);
+            content.ShouldContain("boom");
+            content.ShouldContain("[Error]");
         }
 
         [Fact]
@@ -47,7 +47,7 @@ namespace TaskManager.Tests
 
             using var provider = new FileLoggerProvider(_logDirectory);
 
-            Assert.False(File.Exists(staleLog));
+            File.Exists(staleLog).ShouldBeFalse();
         }
 
         public void Dispose()

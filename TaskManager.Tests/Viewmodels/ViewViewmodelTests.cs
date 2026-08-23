@@ -28,7 +28,7 @@ namespace TaskManager.Tests.VVM_Tests
             foreach (var window in windows)
             {
                 var expectedVmName = window.Name + "ViewModel";
-                Assert.Contains(viewModels, vm => vm.Name == expectedVmName);
+                viewModels.ShouldContain(vm => vm.Name == expectedVmName);
             }
         }
 
@@ -43,7 +43,7 @@ namespace TaskManager.Tests.VVM_Tests
                 if (!vm.Name.EndsWith("ViewModel")) continue;
 
                 var expectedWindowName = vm.Name.Replace("ViewModel", "");
-                Assert.Contains(windows, w => w.Name == expectedWindowName);
+                windows.ShouldContain(w => w.Name == expectedWindowName);
             }
         }
     }

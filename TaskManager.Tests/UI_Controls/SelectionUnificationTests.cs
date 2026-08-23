@@ -20,8 +20,8 @@ namespace TaskManager.Tests.UI_Controls
 
             GridTestHost.GetRow(grid, 0).IsSelected = true;
 
-            Assert.True(items[0].IsSelected);
-            Assert.Contains(items[0], grid.SelectedItems.Cast<ProcessItem>());
+            items[0].IsSelected.ShouldBeTrue();
+            grid.SelectedItems.Cast<ProcessItem>().ShouldContain(items[0]);
         }
 
         [WpfFact]
@@ -34,10 +34,10 @@ namespace TaskManager.Tests.UI_Controls
             GridTestHost.GetRow(grid, 0).IsSelected = true;
             GridTestHost.GetRow(grid, 2).IsSelected = true;
 
-            Assert.True(items[0].IsSelected);
-            Assert.True(items[2].IsSelected);
-            Assert.False(items[1].IsSelected);
-            Assert.Equal(2, grid.SelectedItems.Count);
+            items[0].IsSelected.ShouldBeTrue();
+            items[2].IsSelected.ShouldBeTrue();
+            items[1].IsSelected.ShouldBeFalse();
+            grid.SelectedItems.Count.ShouldBe(2);
         }
 
         [WpfFact]
@@ -49,7 +49,7 @@ namespace TaskManager.Tests.UI_Controls
 
             items[1].IsSelected = true;
 
-            Assert.True(GridTestHost.GetRow(grid, 1).IsSelected);
+            GridTestHost.GetRow(grid, 1).IsSelected.ShouldBeTrue();
         }
 
         [WpfFact]
@@ -59,11 +59,11 @@ namespace TaskManager.Tests.UI_Controls
             BetterDataGrid grid = GridTestHost.CreateGrid(items);
             GridTestHost.ApplyUnifiedSelectionStyle(grid);
             GridTestHost.GetRow(grid, 1).IsSelected = true;
-            Assert.True(items[1].IsSelected);
+            items[1].IsSelected.ShouldBeTrue();
 
             items[1].IsSelected = false;
 
-            Assert.False(GridTestHost.GetRow(grid, 1).IsSelected);
+            GridTestHost.GetRow(grid, 1).IsSelected.ShouldBeFalse();
         }
 
         [WpfFact]
@@ -73,14 +73,16 @@ namespace TaskManager.Tests.UI_Controls
             BetterDataGrid grid = GridTestHost.CreateGrid(items);
             GridTestHost.ApplyUnifiedSelectionStyle(grid);
             GridTestHost.GetRow(grid, 1).IsSelected = true;
-            Assert.True(items[1].IsSelected);
+            items[1].IsSelected.ShouldBeTrue();
 
             var collection = (ObservableCollection<ProcessItem>)grid.ItemsSource;
             collection[1] = new ProcessItem(new Process { Name = "replacement", Pid = 99, Path = string.Empty });
             grid.UpdateLayout();
 
-            Assert.False(collection[1].IsSelected);
-            Assert.False(GridTestHost.GetRow(grid, 1).IsSelected);
+            collection[1].IsSelected.ShouldBeFalse();
+            GridTestHost.GetRow(grid, 1).IsSelected.ShouldBeFalse();
         }
     }
 }
+
+

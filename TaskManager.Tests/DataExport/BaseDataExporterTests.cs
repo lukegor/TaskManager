@@ -29,11 +29,11 @@ namespace TaskManager.Tests
 
             var result = exporter.Export<DummyRecord>(_tempDirectory, []);
 
-            Assert.True(result.IsSuccess);
-            Assert.NotNull(result.FilePath);
-            Assert.StartsWith(_tempDirectory, result.FilePath);
-            Assert.Contains(FileNamePrefix, result.FilePath);
-            Assert.EndsWith(".txt", result.FilePath);
+            result.IsSuccess.ShouldBeTrue();
+            result.FilePath.ShouldNotBeNull();
+            result.FilePath.ShouldStartWith(_tempDirectory);
+            result.FilePath.ShouldContain(FileNamePrefix);
+            result.FilePath.ShouldEndWith(".txt");
         }
 
         [Theory]
@@ -48,8 +48,8 @@ namespace TaskManager.Tests
 
             var result = exporter.Export<DummyRecord>("C:\\dir", []);
 
-            Assert.False(result.IsSuccess);
-            Assert.Equal(expectedReason, result.FailureReason);
+            result.IsSuccess.ShouldBeFalse();
+            result.FailureReason.ShouldBe(expectedReason);
         }
 
         [Fact]
@@ -57,7 +57,7 @@ namespace TaskManager.Tests
         {
             var exporter = new ThrowingExporter(CreateSettings(), new InvalidOperationException("a bug"));
 
-            Assert.Throws<InvalidOperationException>(
+            Should.Throw<InvalidOperationException>(
                 () => exporter.Export<DummyRecord>("C:\\dir", []));
         }
 
@@ -92,3 +92,4 @@ namespace TaskManager.Tests
         }
     }
 }
+

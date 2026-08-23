@@ -20,13 +20,13 @@ namespace TaskManager.Tests.UI_Formatters
 
             string formatted = new ProcessRowFormatter().Format(new ProcessItem(process));
 
-            Assert.Equal("svc\t42\tC:\\tools\\svc.exe\t8\t3\t4", formatted);
+            formatted.ShouldBe("svc\t42\tC:\\tools\\svc.exe\t8\t3\t4");
         }
 
         [Fact]
         public void Null_ReturnsEmptyString()
         {
-            Assert.Equal(string.Empty, new ProcessRowFormatter().Format(null));
+            new ProcessRowFormatter().Format(null).ShouldBe(string.Empty);
         }
 
         [Fact]
@@ -34,7 +34,7 @@ namespace TaskManager.Tests.UI_Formatters
         {
             var fallback = new PlainFallback();
 
-            Assert.Equal("fallback-text", new ProcessRowFormatter().Format(fallback));
+            new ProcessRowFormatter().Format(fallback).ShouldBe("fallback-text");
         }
 
         private sealed class PlainFallback

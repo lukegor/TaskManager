@@ -49,8 +49,8 @@ namespace TaskManager.Tests
 
             var success = _viewModel.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt);
 
-            Assert.True(success);
-            Assert.NotEmpty(Directory.GetFiles(_tempDirectory, "record-*"));
+            success.ShouldBeTrue();
+            Directory.GetFiles(_tempDirectory, "record-*").ShouldNotBeEmpty();
         }
 
         [Fact]
@@ -63,7 +63,7 @@ namespace TaskManager.Tests
 
             var success = _viewModel.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt);
 
-            Assert.False(success);
+            success.ShouldBeFalse();
             _messageService.Received(1).ShowMessage(
                 Arg.Any<string>(), Arg.Any<string>(), MessageBoxButton.OK, MessageBoxImage.Error);
         }
@@ -77,7 +77,7 @@ namespace TaskManager.Tests
 
             var success = _viewModel.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt);
 
-            Assert.False(success);
+            success.ShouldBeFalse();
         }
 
         private static IAppSettings NewSettings()
@@ -107,3 +107,4 @@ namespace TaskManager.Tests
         }
     }
 }
+

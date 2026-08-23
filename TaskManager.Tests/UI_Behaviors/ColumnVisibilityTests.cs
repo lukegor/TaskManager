@@ -24,10 +24,10 @@ namespace TaskManager.Tests.UI_Behaviors
 
             ContextMenu menu = GridColumnVisibility.BuildHeaderMenu(grid);
 
-            Assert.Equal(3, menu.Items.Count);
+            menu.Items.Count.ShouldBe(3);
             foreach (MenuItem item in menu.Items.Cast<MenuItem>())
             {
-                Assert.True(item.IsCheckable);
+                item.IsCheckable.ShouldBeTrue();
             }
         }
 
@@ -39,8 +39,8 @@ namespace TaskManager.Tests.UI_Behaviors
             ContextMenu menu = GridColumnVisibility.BuildHeaderMenu(grid);
 
             MenuItem lockedItem = (MenuItem)menu.Items[0];
-            Assert.False(lockedItem.IsEnabled);
-            Assert.True(lockedItem.IsChecked);
+            lockedItem.IsEnabled.ShouldBeFalse();
+            lockedItem.IsChecked.ShouldBeTrue();
         }
 
         [WpfFact]
@@ -52,8 +52,8 @@ namespace TaskManager.Tests.UI_Behaviors
 
             pidItem.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
 
-            Assert.Equal(Visibility.Collapsed, grid.Columns[1].Visibility);
-            Assert.False(pidItem.IsChecked);
+            grid.Columns[1].Visibility.ShouldBe(Visibility.Collapsed);
+            pidItem.IsChecked.ShouldBeFalse();
         }
 
         [WpfFact]
@@ -63,11 +63,11 @@ namespace TaskManager.Tests.UI_Behaviors
             grid.Columns[2].Visibility = Visibility.Collapsed;
             ContextMenu menu = GridColumnVisibility.BuildHeaderMenu(grid);
             var priorityItem = (MenuItem)menu.Items[2];
-            Assert.False(priorityItem.IsChecked);
+            priorityItem.IsChecked.ShouldBeFalse();
 
             priorityItem.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
 
-            Assert.Equal(Visibility.Visible, grid.Columns[2].Visibility);
+            grid.Columns[2].Visibility.ShouldBe(Visibility.Visible);
         }
 
         [WpfFact]
@@ -77,10 +77,11 @@ namespace TaskManager.Tests.UI_Behaviors
 
             ContextMenu menu = GridColumnVisibility.ShowHeaderMenu(grid);
 
-            Assert.True(menu.IsOpen);
-            Assert.Same(grid, menu.PlacementTarget);
-            Assert.Equal(PlacementMode.MousePoint, menu.Placement);
+            menu.IsOpen.ShouldBeTrue();
+            menu.PlacementTarget.ShouldBeSameAs(grid);
+            menu.Placement.ShouldBe(PlacementMode.MousePoint);
             menu.IsOpen = false;
         }
     }
 }
+

@@ -33,7 +33,7 @@ namespace TaskManager.Tests
                     Arg.Any<MessageBoxButton>(), Arg.Any<MessageBoxImage>()))
                 .Do(_ => throw new InvalidOperationException("dialog failed"));
 
-            _handler.Handle(new InvalidOperationException("original"), "testing");
+            Should.NotThrow(() => _handler.Handle(new InvalidOperationException("original"), "testing"));
         }
 
         [Fact]
@@ -42,9 +42,7 @@ namespace TaskManager.Tests
             _messageService.ShowMessage(Arg.Any<string>(), Arg.Any<string>(),
                 MessageBoxButton.YesNo, MessageBoxImage.Error).Returns(MessageBoxResult.No);
 
-            var keepsRunning = _handler.HandleDispatcherException(new InvalidOperationException("boom"));
-
-            Assert.False(keepsRunning);
+            _handler.HandleDispatcherException(new InvalidOperationException("boom")).ShouldBeFalse();
         }
 
         [Fact]
@@ -54,9 +52,7 @@ namespace TaskManager.Tests
                     Arg.Any<MessageBoxButton>(), Arg.Any<MessageBoxImage>())
                 .Returns(_ => throw new InvalidOperationException("dialog failed"));
 
-            var keepsRunning = _handler.HandleDispatcherException(new InvalidOperationException("boom"));
-
-            Assert.False(keepsRunning);
+            _handler.HandleDispatcherException(new InvalidOperationException("boom")).ShouldBeFalse();
         }
     }
 }

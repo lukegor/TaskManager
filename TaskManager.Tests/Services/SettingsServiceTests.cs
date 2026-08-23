@@ -37,8 +37,8 @@ namespace TaskManager.Tests
 
             messageService.Received(1).ShowMessage(
                 Arg.Any<string>(), Arg.Any<string>(), MessageBoxButton.OK, MessageBoxImage.Error);
-            Assert.Equal(expectedLanguage, service.Language);
-            Assert.Equal(expectedRefreshFrequency, service.RefreshFrequency);
+            service.Language.ShouldBe(expectedLanguage);
+            service.RefreshFrequency.ShouldBe(expectedRefreshFrequency);
         }
     }
 }

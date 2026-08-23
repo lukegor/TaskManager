@@ -30,9 +30,9 @@ namespace TaskManager.Tests.UI_Controls
 
             GridTestHost.RaiseRightClick(GridTestHost.GetRow(grid, 2));
 
-            Assert.Equal(new[] { items[2] }, grid.SelectedItems.Cast<ProcessItem>());
-            Assert.True(_openMenu.IsOpen);
-            Assert.Same(grid, _openMenu.PlacementTarget);
+            grid.SelectedItems.Cast<ProcessItem>().ShouldBe(new[] { items[2] });
+            _openMenu.IsOpen.ShouldBeTrue();
+            _openMenu.PlacementTarget.ShouldBeSameAs(grid);
         }
 
         [WpfFact]
@@ -48,8 +48,8 @@ namespace TaskManager.Tests.UI_Controls
 
             GridTestHost.RaiseRightClick(GridTestHost.GetRow(grid, 0));
 
-            Assert.Equal(new[] { items[0], items[1] }, grid.SelectedItems.Cast<ProcessItem>());
-            Assert.True(_openMenu.IsOpen);
+            grid.SelectedItems.Cast<ProcessItem>().ShouldBe(new[] { items[0], items[1] });
+            _openMenu.IsOpen.ShouldBeTrue();
         }
 
         [WpfFact]
@@ -63,8 +63,9 @@ namespace TaskManager.Tests.UI_Controls
             // OriginalSource = the grid itself: resolves to no DataGridRow, and no RowContextMenu is set
             GridTestHost.RaiseRightClick(grid);
 
-            Assert.Equal(new[] { items[0] }, grid.SelectedItems.Cast<ProcessItem>());
-            Assert.Null(grid.ContextMenu);
+            grid.SelectedItems.Cast<ProcessItem>().ShouldBe(new[] { items[0] });
+            grid.ContextMenu.ShouldBeNull();
         }
     }
 }
+

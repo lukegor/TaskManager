@@ -50,8 +50,8 @@ namespace TaskManager.Tests
             _manager.SetPriority(new[] { _self.Id }, ProcessPriorityClass.AboveNormal);
 
             _self.Refresh();
-            Assert.Equal(ProcessPriorityClass.AboveNormal, _self.PriorityClass);
-            Assert.Equal(10, item.Process.Priority); // AboveNormal => base priority 10
+            _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
+            item.Process.Priority.ShouldBe(10); // AboveNormal => base priority 10
         }
 
         [Fact]
@@ -64,8 +64,8 @@ namespace TaskManager.Tests
             _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.BelowNormal);
 
             _self.Refresh();
-            Assert.Equal(ProcessPriorityClass.BelowNormal, _self.PriorityClass);
-            Assert.Equal(6, item.Process.Priority); // BelowNormal => base priority 6
+            _self.PriorityClass.ShouldBe(ProcessPriorityClass.BelowNormal);
+            item.Process.Priority.ShouldBe(6); // BelowNormal => base priority 6
         }
 
         [Fact]
@@ -75,10 +75,10 @@ namespace TaskManager.Tests
 
             var summary = _manager.SetPriority(new[] { stalePid }, ProcessPriorityClass.Normal);
 
-            Assert.Empty(summary.SucceededPids);
-            var failure = Assert.Single(summary.Failures);
-            Assert.Equal(stalePid, failure.Pid);
-            Assert.Equal(ProcessOpFailureReason.ProcessExited, failure.Reason);
+            summary.SucceededPids.ShouldBeEmpty();
+            var failure = summary.Failures.ShouldHaveSingleItem();
+            failure.Pid.ShouldBe(stalePid);
+            failure.Reason.ShouldBe(ProcessOpFailureReason.ProcessExited);
         }
 
         [Fact]
@@ -88,10 +88,10 @@ namespace TaskManager.Tests
 
             var summary = _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.AboveNormal);
 
-            Assert.Equal(new[] { _self.Id }, summary.SucceededPids);
-            Assert.Single(summary.Failures);
+            summary.SucceededPids.ShouldBe(new[] { _self.Id });
+            summary.Failures.ShouldHaveSingleItem();
             _self.Refresh();
-            Assert.Equal(ProcessPriorityClass.AboveNormal, _self.PriorityClass);
+            _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
         }
 
         [Fact]
@@ -104,18 +104,18 @@ namespace TaskManager.Tests
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
-            Assert.NotNull(victim);
+            victim.ShouldNotBeNull();
             int stalePid = GetUnusedPid();
 
             try
             {
                 var summary = _manager.TerminateProcesses(new[] { victim.Id, stalePid });
 
-                Assert.Equal(new[] { victim.Id }, summary.SucceededPids);
-                var failure = Assert.Single(summary.Failures);
-                Assert.Equal(stalePid, failure.Pid);
-                Assert.True(victim.WaitForExit(5_000));
-                Assert.True(victim.HasExited);
+                summary.SucceededPids.ShouldBe(new[] { victim.Id });
+                var failure = summary.Failures.ShouldHaveSingleItem();
+                failure.Pid.ShouldBe(stalePid);
+                victim.WaitForExit(5_000).ShouldBeTrue();
+                victim.HasExited.ShouldBeTrue();
             }
             finally
             {
@@ -166,3 +166,5 @@ namespace TaskManager.Tests
         }
     }
 }
+
+

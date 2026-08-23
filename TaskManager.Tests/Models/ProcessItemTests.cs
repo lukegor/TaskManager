@@ -13,8 +13,8 @@ namespace TaskManager.Tests.Models
 
             item.IsSelected = true;
 
-            Assert.True(item.IsSelected);
-            Assert.Contains(nameof(ProcessItem.IsSelected), raised);
+            item.IsSelected.ShouldBeTrue();
+            raised.ShouldContain(nameof(ProcessItem.IsSelected));
         }
 
         [Fact]
@@ -26,7 +26,7 @@ namespace TaskManager.Tests.Models
 
             item.IsSelected = true;
 
-            Assert.Equal(0, raised);
+            raised.ShouldBe(0);
         }
     }
 }
