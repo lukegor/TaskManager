@@ -127,6 +127,25 @@ namespace TaskManager.Tests
         }
 
         [Fact]
+        public async Task LoadProcesses_PopulatesCollectionThroughDispatcher()
+        {
+            var dispatcher = Substitute.For<IDispatcherService>();
+            // execute inline like the real UI dispatcher would
+            dispatcher.When(d => d.Invoke(Arg.Any<Action>()))
+                .Do(ci => ((Action)ci[0])());
+            var manager = new ProcessManager(
+                dispatcher,
+                _settings,
+                new TimerManager(_settings),
+                NullLogger<ProcessManager>.Instance);
+
+            await manager.LoadProcesses();
+
+            manager.Processes.ShouldNotBeEmpty();
+            dispatcher.Received().Invoke(Arg.Any<Action>());
+        }
+
+        [Fact]
         public async Task SafePollingRefreshAsync_SwallowsAndLogsUnexpectedFailures()
         {
             var throwingDispatcher = Substitute.For<IDispatcherService>();

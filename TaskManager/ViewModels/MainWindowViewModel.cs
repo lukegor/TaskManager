@@ -116,9 +116,8 @@ namespace TaskManager.ViewModels
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             RefreshCommand = new AsyncRelayCommand(() => _processManager.PerformRefresh(isUserInitiated: true));
 
-            // load running processes synchronously; a startup failure must not abort the app
-            _errorHandler.Guard(() => _processManager.LoadProcesses().GetAwaiter().GetResult(),
-                "loading initial process list");
+            // load running processes in the background; the window must not block on enumeration
+            _ = _errorHandler.GuardAsync(() => _processManager.LoadProcesses(), "loading initial process list");
 			_processManager.StartPollingProcesses();
 
             // binding synchronizers initialization

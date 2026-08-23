@@ -57,17 +57,25 @@ namespace TaskManager.Domain.Services
         }
 
         /// <summary>
-        ///
+        /// Enumerates all processes off-thread, then populates the collection in one UI-thread batch.
         /// </summary>
-        /// <remarks>It's much faster thanks to asynchronous loading</remarks>
+        /// <remarks>
+        /// The enumeration must be materialized (<c>ToList</c>) on the worker thread: <see cref="GetProcesses"/>
+        /// is a lazy iterator, so handing it to <see cref="Task.Run"/> directly would run the expensive
+        /// enumeration inside the consumer loop instead. Adds are marshalled through the dispatcher because
+        /// the collection is bound to the UI; cross-thread collection changes never reach the grid.
+        /// </remarks>
         public async Task LoadProcesses()
         {
-            var processList = await Task.Run(() => GetProcesses()).ConfigureAwait(false);
+            var processList = await Task.Run(() => GetProcesses().ToList()).ConfigureAwait(false);
 
-            foreach (var process in processList)
+            _dispatcher.Invoke(() =>
             {
-                Processes.Add(new ProcessItem(process));
-            }
+                foreach (var process in processList)
+                {
+                    Processes.Add(new ProcessItem(process));
+                }
+            });
         }
 
         public void StartPollingProcesses()
