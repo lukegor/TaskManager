@@ -8,6 +8,7 @@ using TaskManager.Domain.Services.Utility;
 using TaskManager.Infrastructure.Logging;
 using TaskManager.Properties;
 using TaskManager.Services;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
 using TaskManager.UI.Views;
 using TaskManager.Utility.Utility;
@@ -75,6 +76,7 @@ namespace TaskManager
             services.AddSingleton<IAppSettings, SettingsService>();
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<IMessageService, MessageService>();
+            services.AddSingleton<IErrorHandler, UiErrorHandler>();
             services.AddSingleton<IDispatcherService, WpfDispatcherService>();
 
             services.AddSingleton<SettingsService>();

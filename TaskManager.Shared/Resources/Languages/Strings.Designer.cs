@@ -457,5 +457,32 @@ namespace TaskManager.Shared.Resources.Languages {
                 return ResourceManager.GetString("Tip", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to An unexpected error occurred while {0}..
+        /// </summary>
+        public static string UnexpectedErrorFormat {
+            get {
+                return ResourceManager.GetString("UnexpectedErrorFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to An unexpected error occurred....
+        /// </summary>
+        public static string ContinueAfterErrorFormat {
+            get {
+                return ResourceManager.GetString("ContinueAfterErrorFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to A fatal error occurred and the application must close.....
+        /// </summary>
+        public static string FatalErrorFormat {
+            get {
+                return ResourceManager.GetString("FatalErrorFormat", resourceCulture);
+            }
+        }
     }
 }

@@ -251,4 +251,21 @@
 
 Start loading default settings...</value>
   </data>
+  <data name="UnexpectedErrorFormat" xml:space="preserve">
+    <value>An unexpected error occurred while {0}.
+
+Details: {1}</value>
+  </data>
+  <data name="ContinueAfterErrorFormat" xml:space="preserve">
+    <value>An unexpected error occurred.
+
+{0}
+
+Do you want to continue running the application?</value>
+  </data>
+  <data name="FatalErrorFormat" xml:space="preserve">
+    <value>A fatal error occurred and the application must close.
+
+Details were written to the log file.</value>
+  </data>
 </root>
