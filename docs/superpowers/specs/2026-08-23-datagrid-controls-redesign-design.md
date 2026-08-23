@@ -124,7 +124,7 @@ Polling refresh replaces process items; replaced items start unselected. Same as
 - **Column visibility invariant**: guaranteed by locked columns; no runtime guard needed.
 - **Selection during refresh**: `ItemContainerStyle` binding re-evaluates per container; no manual sync code exists to break.
 - **VM command preconditions**: Terminate/SetPriority keep existing validation (`SelectProcess` error dialog when
-  nothing selected) — unchanged contract, now also covered by tests where feasible without new seams.
+  nothing selected) — unchanged contract; its automated coverage belongs to the follow-up testing effort (§2).
 
 ## 6. Testing Strategy
 
@@ -138,8 +138,8 @@ Polling refresh replaces process items; replaced items start unselected. Same as
 ### 6.2 Input simulation
 
 Right-clicks are raised via `RaiseEvent(new MouseButtonEventArgs(InputManager.Current.PrimaryMouseDevice,
-Environment.TickCount, MouseButton.Right) { RoutedEvent = ... })` against specific rows — the same event path a
-user's click takes. No reflection into internals, no sleeps, no real timers.
+Environment.TickCount, MouseButton.Right) { RoutedEvent = Mouse.MouseRightButtonDownEvent })` against specific
+rows — the same event path a user's click takes. No reflection into internals, no sleeps, no real timers.
 
 ### 6.3 Coverage map
 
