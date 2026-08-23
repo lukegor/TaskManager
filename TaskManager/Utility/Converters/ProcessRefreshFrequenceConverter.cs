@@ -6,7 +6,7 @@ namespace TaskManager.Utility.Converters
 {
     public class ProcessRefreshFrequenceConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value == null)
                 return null;
@@ -15,12 +15,12 @@ namespace TaskManager.Utility.Converters
             return RefreshFrequencyTypeHelper.MapEnumToLocalString(processesRefreshFrequencyType);
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value == null)
                 return null;
 
-            string localizedProcessesRefreshFrequencyType = value.ToString();
+            string localizedProcessesRefreshFrequencyType = value.ToString()!;
             return RefreshFrequencyTypeHelper.MapLocalStringToEnum(localizedProcessesRefreshFrequencyType);
         }
     }
