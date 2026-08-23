@@ -7,12 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.104.2" />
-    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
-    <PackageReference Include="NtApiDotNet" Version="1.1.33" />
-    <!-- Security pin: NtApiDotNet -> System.DirectoryServices 5.0.0 chain pulls vulnerable System.Drawing.Common 5.0.0 -->
-    <PackageReference Include="System.Drawing.Common" Version="10.0.11" />
+    <PackageReference Include="ClosedXML" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="NtApiDotNet" />
   </ItemGroup>
 
   <ItemGroup>
