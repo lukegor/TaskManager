@@ -10,7 +10,7 @@ namespace TaskManager.Services
 {
     internal class SettingsService : ObservableObject, IAppSettings, ISettingsService
     {
-        private string _language;
+        private string _language = string.Empty;
         public string Language
         {
             get { return _language; }
@@ -24,7 +24,7 @@ namespace TaskManager.Services
             set { SetProperty(ref _refreshFrequency, value); }
         }
 
-        private string _dateTimeFormat;
+        private string _dateTimeFormat = string.Empty;
         public string DateTimeFormat
         {
             get { return _dateTimeFormat; }

@@ -8,12 +8,12 @@ namespace TaskManager.Domain.Models
     /// </summary>
     public class Process : IExportable
 	{
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public int? Pid { get; set; }
         [IgnoreSerialization]
         [JsonIgnore]
         public ArchitectureType ArchitectureType { get; set; }
-        public string Path { get; set; }
+        public required string Path { get; set; }
         public int? Priority { get; set; }
         public int ThreadCount { get; set; }
         public int? Ppid { get; set; }

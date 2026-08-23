@@ -5,7 +5,7 @@ namespace TaskManager.Domain.Models
 {
     public class EditableSettings : ObservableObject
     {
-        private string _language;
+        private string _language = string.Empty;
         public string Language
         {
             get => _language;
@@ -19,7 +19,7 @@ namespace TaskManager.Domain.Models
             set => SetProperty(ref _processesRefreshFrequency, value);
         }
 
-        private string _dateTimeFormat;
+        private string _dateTimeFormat = string.Empty;
         public string DateTimeFormat
         {
             get => _dateTimeFormat;

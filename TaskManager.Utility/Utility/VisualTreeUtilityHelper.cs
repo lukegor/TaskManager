@@ -5,7 +5,7 @@ namespace TaskManager.Utility.Utility
 {
 	public static class VisualTreeUtilityHelper
 	{
-		public static TDependency FindVisualParent<TDependency>(DependencyObject child) where TDependency : DependencyObject
+		public static TDependency? FindVisualParent<TDependency>(DependencyObject? child) where TDependency : DependencyObject
 		{
 			while (child != null)
 			{
@@ -18,7 +18,7 @@ namespace TaskManager.Utility.Utility
 			return null;
 		}
 
-		public static TVisual GetVisualChild<TVisual>(Visual parent) where TVisual : Visual
+		public static TVisual? GetVisualChild<TVisual>(Visual parent) where TVisual : Visual
 		{
 			for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
 			{

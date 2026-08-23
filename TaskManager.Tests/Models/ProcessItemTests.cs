@@ -7,7 +7,7 @@ namespace TaskManager.Tests.Models
         [Fact]
         public void IsSelected_Change_RaisesPropertyChanged()
         {
-            var item = new ProcessItem(new Process { Name = "a", Pid = 1 });
+            var item = new ProcessItem(new Process { Name = "a", Pid = 1, Path = string.Empty });
             var raised = new List<string?>();
             item.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
 
@@ -20,7 +20,7 @@ namespace TaskManager.Tests.Models
         [Fact]
         public void IsSelected_SameValue_DoesNotRaisePropertyChanged()
         {
-            var item = new ProcessItem(new Process { Name = "a", Pid = 1 }) { IsSelected = true };
+            var item = new ProcessItem(new Process { Name = "a", Pid = 1, Path = string.Empty }) { IsSelected = true };
             var raised = 0;
             item.PropertyChanged += (_, _) => raised++;
 

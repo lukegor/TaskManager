@@ -65,7 +65,7 @@ namespace TaskManager.Tests
 
         private ProcessItem GivenTrackedProcess(int pid)
         {
-            var item = new ProcessItem(new Process { Name = "self", Pid = pid });
+            var item = new ProcessItem(new Process { Name = "self", Pid = pid, Path = string.Empty });
             _manager.Processes.Add(item);
             return item;
         }

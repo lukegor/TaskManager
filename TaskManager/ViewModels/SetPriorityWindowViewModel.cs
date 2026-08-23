@@ -25,23 +25,19 @@ namespace TaskManager.ViewModels
             set { SetProperty(ref _priority, value); }
         }
 
-        public ICommand OnConfirmCommand { get; private set; }
+        public ICommand OnConfirmCommand { get; }
 
         private readonly IMessageService _messageService;
         private readonly ProcessManager _processManager;
 
         private readonly IEnumerable<int> _processIds;
 
-        private SetPriorityWindowViewModel()
-        {
-            OnConfirmCommand = new RelayCommand(OnConfirm);
-        }
-
-        public SetPriorityWindowViewModel(IMessageService messageService, ProcessManager processManager, IEnumerable<int> processes) : this()
+        public SetPriorityWindowViewModel(IMessageService messageService, ProcessManager processManager, IEnumerable<int> processes)
         {
             _messageService = messageService;
             _processManager = processManager;
-            this._processIds = processes;
+            _processIds = processes;
+            OnConfirmCommand = new RelayCommand(OnConfirm);
         }
 
         private void OnConfirm()

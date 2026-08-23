@@ -54,7 +54,7 @@ namespace TaskManager.UI.Controls
 
         private void OnMouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            DataGridRow clickedRow = VisualTreeUtilityHelper.FindVisualParent<DataGridRow>(e.OriginalSource as DependencyObject);
+            DataGridRow? clickedRow = VisualTreeUtilityHelper.FindVisualParent<DataGridRow>(e.OriginalSource as DependencyObject);
             if (clickedRow == null)
             {
                 return; // header clicks are owned by GridColumnVisibility; empty areas do nothing

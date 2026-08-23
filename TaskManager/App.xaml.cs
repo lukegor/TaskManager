@@ -20,9 +20,9 @@ namespace TaskManager
     /// </summary>
     public partial class App : Application
     {
-        private IServiceProvider _serviceProvider;
+        private IServiceProvider _serviceProvider = null!;
 
-        public static event App_Close App_Close;
+        public static event App_Close? App_Close;
 
         protected override void OnStartup(StartupEventArgs e)
         {

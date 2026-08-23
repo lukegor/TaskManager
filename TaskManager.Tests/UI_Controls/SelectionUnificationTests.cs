@@ -76,7 +76,7 @@ namespace TaskManager.Tests.UI_Controls
             Assert.True(items[1].IsSelected);
 
             var collection = (ObservableCollection<ProcessItem>)grid.ItemsSource;
-            collection[1] = new ProcessItem(new Process { Name = "replacement", Pid = 99 });
+            collection[1] = new ProcessItem(new Process { Name = "replacement", Pid = 99, Path = string.Empty });
             grid.UpdateLayout();
 
             Assert.False(collection[1].IsSelected);

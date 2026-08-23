@@ -51,7 +51,7 @@ namespace TaskManager.Domain.Services
             _timer.Elapsed += OnProcessPolling;
         }
 
-        public void Processes_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        public void Processes_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             ProcessCount = Processes.Count;
             OnPropertyChanged(nameof(Processes));
@@ -76,7 +76,7 @@ namespace TaskManager.Domain.Services
             _timer.Start();
         }
 
-        private async void OnProcessPolling(object sender, System.Timers.ElapsedEventArgs e)
+        private async void OnProcessPolling(object? sender, System.Timers.ElapsedEventArgs e)
         {
             System.Diagnostics.Debug.WriteLine($"[{DateTime.Now}] Polling");
             await PerformRefresh(isUserInitiated: false);
@@ -187,7 +187,7 @@ namespace TaskManager.Domain.Services
                         {
                             Name = process.ProcessName,
                             Pid = process.Id,
-                            Path = process.MainModule.FileName,
+                            Path = process.MainModule?.FileName ?? string.Empty,
                             ArchitectureType = result switch
                             {
                                 true => ArchitectureType._32BIT,
@@ -200,7 +200,7 @@ namespace TaskManager.Domain.Services
                         };
                     }
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //System.Diagnostics.Debug.WriteLine(ex.ToString());
                     continue;

@@ -35,7 +35,7 @@ namespace TaskManager.ViewModels
 			set { SetProperty(ref dataType, value); }
 		}
 
-		private string dirPath;
+		private string dirPath = string.Empty;
 		public string DirPath
 		{
 			get { return dirPath; }
@@ -51,7 +51,7 @@ namespace TaskManager.ViewModels
 		public IList<ExportationType> Exportations { get; } = Enum.GetValues<ExportationType>();
 		public IList<DataType> Extensions { get; } = Enum.GetValues<DataType>();
 
-		private void FolderSelector_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+		private void FolderSelector_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
 		{
 			if (e.PropertyName == nameof(FolderSelector.DirPath))
 			{
@@ -88,7 +88,7 @@ namespace TaskManager.ViewModels
 
 		private void OnConfirm()
 		{
-			if (Exportation == null || DataType == null)
+			if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
 			{
                 _messageService.ShowMessage("You need to select options", Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 				return;
@@ -96,15 +96,15 @@ namespace TaskManager.ViewModels
 
 			var window = GetAssociatedWindow<DataExportWindow>();
 
-			ExportData();
+			ExportData(exportation, dataType);
 			window.DialogResult = true;
 
 		}
 
-		private void ExportData()
+		private void ExportData(ExportationType exportation, DataType dataType)
 		{
-            var exporter = _serviceProvider.GetRequiredService<DataExporterFactory>().CreateDataExporter((DataType)dataType);
-			switch (Exportation)
+            var exporter = _serviceProvider.GetRequiredService<DataExporterFactory>().CreateDataExporter(dataType);
+			switch (exportation)
 			{
 				case ExportationType.Processes:
 					exporter.Export(dirPath, processes);

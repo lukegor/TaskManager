@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace TaskManager.Domain.Models
@@ -12,7 +13,7 @@ namespace TaskManager.Domain.Models
     {
         private bool isSelected;
 
-        public Process Process { get; set; }
+        public required Process Process { get; set; }
 
         public bool IsSelected
         {
@@ -31,11 +32,8 @@ namespace TaskManager.Domain.Models
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public ProcessItem()
-        {
-        }
-
-        public ProcessItem(Process process) : this()
+        [SetsRequiredMembers]
+        public ProcessItem(Process process)
         {
             Process = process;
         }

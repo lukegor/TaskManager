@@ -9,7 +9,7 @@ namespace TaskManager.Domain.Services
     {
         private readonly Timer _timer;
 
-        public event ElapsedEventHandler Elapsed;
+        public event ElapsedEventHandler? Elapsed;
 
         private double _intervalValue;
         public double Interval
@@ -46,7 +46,7 @@ namespace TaskManager.Domain.Services
             _timer.Dispose();
         }
 
-        private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+        private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
         {
             Elapsed?.Invoke(sender, e);
         }

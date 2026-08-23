@@ -49,7 +49,7 @@ namespace TaskManager.ViewModels
         //}
         #endregion
         #region TwoWay_Bindings
-        private ObservableCollection<ProcessItem> _processes;
+        private ObservableCollection<ProcessItem> _processes = new();
 		public ObservableCollection<ProcessItem> Processes
 		{
 			get => _processes;
@@ -65,7 +65,7 @@ namespace TaskManager.ViewModels
         #endregion
 
         #region Binding_Synchronizers
-        private void ProcessManager_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void ProcessManager_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             // notify if value under ProcessCount getter changed
             // because UI won't react to SetProperty in ProcessManager.ProcessCount notification
@@ -82,8 +82,8 @@ namespace TaskManager.ViewModels
         #endregion
 
         #region PureUI_Bindings
-        private ImageSource _monitoringButtonIcon;
-        public ImageSource MonitoringButtonIcon
+        private ImageSource? _monitoringButtonIcon;
+        public ImageSource? MonitoringButtonIcon
         {
             get => _monitoringButtonIcon;
             set
@@ -123,7 +123,11 @@ namespace TaskManager.ViewModels
             _dispatcherService = dispatcherService;
             _processManager = processManager;
 
-            BindFunctionsToCommands();
+            ExportCommand = new RelayCommand(Export);
+            TerminateCommand = new RelayCommand(TerminateProcesses);
+            SetPriorityCommand = new RelayCommand(SetPriority);
+            OpenSettingsCommand = new RelayCommand(OpenSettings);
+            RefreshCommand = new AsyncRelayCommand(() => _processManager.PerformRefresh(isUserInitiated: true));
 
             // load running processes asynchronously
             _processManager.LoadProcesses().GetAwaiter().GetResult();
@@ -136,15 +140,6 @@ namespace TaskManager.ViewModels
             _processManager.Processes.CollectionChanged += _processManager.Processes_CollectionChanged;
 
             App.App_Close += App_Close;
-        }
-
-        private void BindFunctionsToCommands()
-        {
-            ExportCommand = new RelayCommand(Export);
-            TerminateCommand = new RelayCommand(TerminateProcesses);
-            SetPriorityCommand = new RelayCommand(SetPriority);
-            OpenSettingsCommand = new RelayCommand(OpenSettings);
-            RefreshCommand = new AsyncRelayCommand(() => _processManager.PerformRefresh(isUserInitiated: true));
         }
 
         private void OpenSettings()

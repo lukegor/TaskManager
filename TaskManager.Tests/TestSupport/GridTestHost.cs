@@ -19,7 +19,7 @@ namespace TaskManager.Tests.TestSupport
         public static List<ProcessItem> CreateItems(params (string Name, int Pid)[] processes)
         {
             return processes
-                .Select(p => new ProcessItem(new Process { Name = p.Name, Pid = p.Pid }))
+                .Select(p => new ProcessItem(new Process { Name = p.Name, Pid = p.Pid, Path = string.Empty }))
                 .ToList();
         }
 
