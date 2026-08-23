@@ -29,9 +29,8 @@ namespace TaskManager.Domain.Services.Data_Export
                 PerformExport<T>(fullFileName, strings);
                 return ExportResult.Success(fullFileName);
             }
-            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            catch (Exception ex) when (TryClassifyFailure(ex, out var reason))
             {
-                var reason = ClassifyFailure(ex);
                 _logger.LogWarning(ex, "Export as {Extension} failed ({Reason})", Extension, reason);
                 return ExportResult.Fail(reason);
             }
@@ -52,11 +51,36 @@ namespace TaskManager.Domain.Services.Data_Export
             return $"{FileNamePrefix}{System.DateTime.Now.ToString(DateTime)}.{extension}";
         }
 
-        private static ExportFailureReason ClassifyFailure(Exception ex) => ex switch
+        /// <summary>
+        /// Single source of truth for what counts as an expected export failure.
+        /// The catch filter above and the failure classification are one decision:
+        /// returns true (with reason) exactly for failures the file-writing APIs document,
+        /// false for everything else so genuine defects stay loud and reach Tier 2.
+        /// </summary>
+        /// <remarks>
+        /// Coverage follows the documented exception contracts of the write calls used by
+        /// exporters (<see cref="System.IO.File"/>, <see cref="System.Xml.Linq.XDocument.Save"/>,
+        /// ClosedXML SaveAs): DirectoryNotFound/DriveNotFound/PathTooLong are IOException
+        /// subclasses, ArgumentNull is an ArgumentException subclass. SecurityException
+        /// from legacy docs is .NET Framework CAS-only and does not exist on modern .NET.
+        /// </remarks>
+        private static bool TryClassifyFailure(Exception ex, out ExportFailureReason reason)
         {
-            ArgumentException or NotSupportedException => ExportFailureReason.InvalidPath,
-            UnauthorizedAccessException => ExportFailureReason.AccessDenied,
-            _ => ExportFailureReason.IoError
-        };
+            switch (ex)
+            {
+                case ArgumentException or NotSupportedException:
+                    reason = ExportFailureReason.InvalidPath;
+                    return true;
+                case UnauthorizedAccessException:
+                    reason = ExportFailureReason.AccessDenied;
+                    return true;
+                case IOException:
+                    reason = ExportFailureReason.IoError;
+                    return true;
+                default:
+                    reason = default;
+                    return false;
+            }
+        }
     }
 }
