@@ -34,11 +34,35 @@ namespace TaskManager
 
             _serviceProvider = serviceCollection.BuildServiceProvider();
 
+            RegisterGlobalExceptionHandlers();
+
             SetLanguage();
 
             base.OnStartup(e);
 
             LaunchGUI();
+        }
+
+        private void RegisterGlobalExceptionHandlers()
+        {
+            var errorHandler = _serviceProvider.GetRequiredService<IErrorHandler>();
+
+            DispatcherUnhandledException += (_, e) =>
+                e.Handled = errorHandler.HandleDispatcherException(e.Exception);
+
+            AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            {
+                if (e.ExceptionObject is Exception exception)
+                {
+                    errorHandler.LogFatal(exception);
+                }
+            };
+
+            TaskScheduler.UnobservedTaskException += (_, e) =>
+            {
+                errorHandler.LogUnobserved(e.Exception);
+                e.SetObserved();
+            };
         }
 
         private void SetLanguage()
