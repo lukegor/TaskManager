@@ -1,5 +1,4 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
@@ -9,16 +8,16 @@ using TaskManager.Utility.Utility;
 
 namespace TaskManager.Services
 {
-    internal class SettingsService : ObservableObject, IAppSettings, ISettingsService
+    /// <summary>Interim adapter over the legacy ApplicationSettingsBase store;
+    /// replaced by the JSON-backed implementation in this phase.</summary>
+    internal class SettingsService : ISettingsService
     {
-        public string Language { get; set => SetProperty(ref field, value); } = string.Empty;
-
-        public RefreshFrequencyType RefreshFrequency { get; set => SetProperty(ref field, value); }
-
-        public string DateTimeFormat { get; set => SetProperty(ref field, value); } = string.Empty;
-
         private readonly IMessageService _messageService;
         private readonly ILogger<SettingsService> _logger;
+
+        public AppSettings Current { get; private set; } = AppSettings.Defaults;
+
+        public event Action<AppSettings>? Changed;
 
         public SettingsService(IMessageService messageService, ILogger<SettingsService> logger)
         {
@@ -32,68 +31,41 @@ namespace TaskManager.Services
         {
             try
             {
-                LoadSettings();
+                Current = LoadSettings();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Loading personalized settings failed; falling back to defaults");
                 _messageService.ShowMessage(Strings.LoadingSettingsFailed, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-                TryLoadDefaultSettings();
             }
         }
 
-        protected virtual void LoadSettings()
+        protected virtual AppSettings LoadSettings()
         {
-            Language = Settings.Default.LanguageVersion;
-            RefreshFrequency = (RefreshFrequencyType)int.Parse(Settings.Default.RefreshFrequency);
-            DateTimeFormat = Settings.Default.DateTimeFormat;
-        }
-
-        private void LoadDefaultSettings()
-        {
-            Language = (string?)GetDefaultSettingValue(nameof(Settings.Default.LanguageVersion)) ?? string.Empty;
-            RefreshFrequency = (RefreshFrequencyType)int.Parse(
-                (string?)GetDefaultSettingValue(nameof(Settings.Default.RefreshFrequency)) ?? ((int)RefreshFrequencyType.Low).ToString());
-            DateTimeFormat = (string?)GetDefaultSettingValue(nameof(Settings.Default.DateTimeFormat)) ?? string.Empty;
-        }
-
-        private void TryLoadDefaultSettings()
-        {
-            try
+            return new AppSettings
             {
-                LoadDefaultSettings();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Loading default settings failed; keeping construction-time values");
-            }
+                Language = Settings.Default.LanguageVersion,
+                ProcessesRefreshFrequency = (RefreshFrequencyType)int.Parse(Settings.Default.RefreshFrequency),
+                DateTimeFormat = Settings.Default.DateTimeFormat
+            };
         }
 
-        private object GetDefaultSettingValue(string propertyName)
+        public void Update(AppSettings settings)
         {
-            return Settings.Default.Properties[propertyName].DefaultValue;
-        }
+            var isChangedLanguage = Settings.Default.LanguageVersion != settings.Language;
 
-        public void SaveSettings(EditableSettings newSettings)
-        {
-            var isChangedLanguage = Settings.Default.LanguageVersion != newSettings.Language;
-            Settings.Default.LanguageVersion = newSettings.Language;
-
-            Settings.Default.RefreshFrequency = ((int)newSettings.ProcessesRefreshFrequency).ToString();
-
-            Settings.Default.DateTimeFormat = newSettings.DateTimeFormat;
-
+            Settings.Default.LanguageVersion = settings.Language;
+            Settings.Default.RefreshFrequency = ((int)settings.ProcessesRefreshFrequency).ToString();
+            Settings.Default.DateTimeFormat = settings.DateTimeFormat;
             Settings.Default.Save();
+
+            Current = settings;
+            Changed?.Invoke(settings);
 
             if (isChangedLanguage)
             {
                 App.Restart();
             }
-        }
-
-        public void RestoreDefaults()
-        {
-            Settings.Default.Reset();
         }
     }
 }

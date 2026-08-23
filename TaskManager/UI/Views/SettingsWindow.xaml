@@ -42,14 +42,14 @@
                </Grid.RowDefinitions>
 
                <Label Content="{x:Static resx:Strings.Language}" ContentStringFormat="{}{0} :" Grid.Column="0" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center" FontSize="18" FontFamily="Segoe UI Semibold" Foreground="#FF5E6366"/>
-               <ComboBox ItemsSource="{x:Static util:LanguageDictionary.KeysList}" SelectedValue="{Binding EditableSettings.Language}"
-                   Padding="10,8" Grid.Column="1" HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Center" Width="200" Margin="20,0,0,0"
-                   FontSize="16" FontFamily="Segoe UI Semibold"/>
+                <ComboBox ItemsSource="{Binding Languages}" SelectedValue="{Binding Language}"
+                    Padding="10,8" Grid.Column="1" HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Center" Width="200" Margin="20,0,0,0"
+                    FontSize="16" FontFamily="Segoe UI Semibold"/>
 
                <Label Content="{x:Static resx:Strings.RefreshFrequency}" ContentStringFormat="{}{0} :"
                       Grid.Column="0" Grid.Row="1" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center"
                       FontSize="18" FontFamily="Segoe UI Semibold" Foreground="#FF5E6366"/>
-                <ComboBox ItemsSource="{Binding ProcessesRefreshFrequencyTypes}" SelectedItem="{Binding EditableSettings.ProcessesRefreshFrequency, Mode=TwoWay, Converter={StaticResource ProcessRefreshFrequenceConverter}}"
+                 <ComboBox ItemsSource="{Binding ProcessesRefreshFrequencyTypes}" SelectedItem="{Binding ProcessesRefreshFrequency, Mode=TwoWay, Converter={StaticResource ProcessRefreshFrequenceConverter}}"
                          Padding="10,8" Margin="20,0,0,0"
                          Grid.Column="1" Grid.Row="1" HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Center"
                          Width="200" FontSize="16" FontFamily="Segoe UI Semibold"/>
@@ -57,7 +57,7 @@
                <Label Content="{x:Static resx:Strings.TimeStampFormat}" ContentStringFormat="{}{0} :"
                       Grid.Column="0" Grid.Row="2" HorizontalAlignment="Right" Margin="0,0,10,0" VerticalAlignment="Center"
                       FontSize="18" FontFamily="Segoe UI Semibold" Foreground="#FF5E6366"/>
-                <ComboBox ItemsSource="{Binding DateTimeFormats}" SelectedItem="{Binding EditableSettings.DateTimeFormat, Mode=TwoWay}"
+                 <ComboBox ItemsSource="{Binding DateTimeFormats}" SelectedItem="{Binding DateTimeFormat, Mode=TwoWay}"
                          Padding="10,8" Margin="20,0,0,0"
                          Grid.Column="1" Grid.Row="2" HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalAlignment="Center"
                          Width="200" FontSize="16" FontFamily="Segoe UI Semibold"/>

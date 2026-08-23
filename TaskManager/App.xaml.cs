@@ -93,7 +93,6 @@ namespace TaskManager
             });
 
             // Register Services
-            services.AddSingleton<IAppSettings, SettingsService>();
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<IMessageService, MessageService>();
             services.AddSingleton<IErrorHandler, UiErrorHandler>();

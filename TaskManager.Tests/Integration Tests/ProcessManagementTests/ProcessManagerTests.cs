@@ -20,14 +20,19 @@ namespace TaskManager.Tests
     public class ProcessManagerTests : IDisposable
     {
         private readonly ProcessManager _manager;
-        private readonly IAppSettings _settings;
+        private readonly ISettingsService _settings;
         private readonly WinProcess _self = WinProcess.GetCurrentProcess();
         private readonly ProcessPriorityClass _originalPriority;
 
         public ProcessManagerTests()
         {
-            _settings = Substitute.For<IAppSettings>();
-            _settings.RefreshFrequency.Returns(RefreshFrequencyType.Low); // timer is never started
+            _settings = Substitute.For<ISettingsService>();
+            _settings.Current.Returns(new AppSettings
+            {
+                Language = "English",
+                ProcessesRefreshFrequency = RefreshFrequencyType.Low, // timer is never started
+                DateTimeFormat = AppSettings.Defaults.DateTimeFormat
+            });
 
             _manager = new ProcessManager(
                 Substitute.For<IDispatcherService>(),

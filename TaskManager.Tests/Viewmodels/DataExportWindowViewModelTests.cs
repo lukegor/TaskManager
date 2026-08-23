@@ -9,6 +9,7 @@ using TaskManager.Domain.Services.Data_Export;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
 using TaskManager.ViewModels;
+using TaskManager.Utility.Utility;
 using DataTypeEnum = TaskManager.Utility.Utility.DataType;
 using ExportationTypeEnum = TaskManager.Utility.Utility.ExportationType;
 
@@ -32,7 +33,7 @@ namespace TaskManager.Tests
             _serviceProvider.GetService(typeof(DataExporterFactory)).Returns(_exporterFactory);
             _viewModel = new DataExportWindowViewModel(
                 _serviceProvider,
-                Substitute.For<IAppSettings>(),
+                Substitute.For<ISettingsService>(),
                 _messageService,
                 new UiErrorHandler(NullLogger<UiErrorHandler>.Instance, Substitute.For<IMessageService>()),
                 []);
@@ -80,16 +81,21 @@ namespace TaskManager.Tests
             success.ShouldBeFalse();
         }
 
-        private static IAppSettings NewSettings()
+        private static ISettingsService NewSettings()
         {
-            var settings = Substitute.For<IAppSettings>();
-            settings.DateTimeFormat.Returns("yyyyMMdd_HHmmss");
+            var settings = Substitute.For<ISettingsService>();
+            settings.Current.Returns(new AppSettings
+            {
+                Language = "English",
+                ProcessesRefreshFrequency = RefreshFrequencyType.Low,
+                DateTimeFormat = "yyyyMMdd_HHmmss"
+            });
             return settings;
         }
 
         private sealed class ThrowingExporter : TxtExporter
         {
-            public ThrowingExporter(IAppSettings settings)
+            public ThrowingExporter(ISettingsService settings)
                 : base(settings, NullLogger<BaseDataExporter>.Instance)
             {
             }

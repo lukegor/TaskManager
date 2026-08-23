@@ -17,7 +17,7 @@ namespace TaskManager.Services.Factories
 
         public virtual BaseDataExporter CreateDataExporter(DataType dataType)
         {
-            var settings = _serviceProvider.GetRequiredService<IAppSettings>();
+            var settings = _serviceProvider.GetRequiredService<ISettingsService>();
             var exporterLogger = _serviceProvider.GetRequiredService<ILogger<BaseDataExporter>>();
 
             return dataType switch

@@ -17,7 +17,7 @@ namespace TaskManager.Services.Factories
 
         public DataExportWindowViewModel Create(IEnumerable<Process> data)
         {
-            var settings = _serviceProvider.GetRequiredService<IAppSettings>();
+            var settings = _serviceProvider.GetRequiredService<ISettingsService>();
             var messageService = _serviceProvider.GetRequiredService<IMessageService>();
             var errorHandler = _serviceProvider.GetRequiredService<IErrorHandler>();
 

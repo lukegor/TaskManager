@@ -23,21 +23,11 @@ namespace TaskManager.Domain.Services
         }
 
         private readonly IDispatcherService _dispatcher;
-        private readonly IAppSettings _settings;
+        private readonly ISettingsService _settings;
         private readonly TimerManager _timer;
         private readonly ILogger<ProcessManager> _logger;
 
-        // Event handler to update the field when the setting changes.
-        private void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(_settings.RefreshFrequency))
-            {
-                var mappingKey = (RefreshFrequencyType)_settings.RefreshFrequency;
-                _timer.UpdatePolling(RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping[mappingKey]);
-            }
-        }
-
-        public ProcessManager(IDispatcherService dispatcher, IAppSettings settings, TimerManager timerManager,
+        public ProcessManager(IDispatcherService dispatcher, ISettingsService settings, TimerManager timerManager,
             ILogger<ProcessManager> logger)
         {
             _dispatcher = dispatcher;

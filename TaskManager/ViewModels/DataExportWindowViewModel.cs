@@ -57,12 +57,12 @@ namespace TaskManager.ViewModels
 		#endregion
 
 		private readonly IServiceProvider _serviceProvider;
-        private readonly IAppSettings _settings;
+        private readonly ISettingsService _settings;
 		private readonly IMessageService _messageService;
 		private readonly IErrorHandler _errorHandler;
 
 		public DataExportWindowViewModel(IServiceProvider serviceProvider,
-			IAppSettings settings,
+			ISettingsService settings,
 			IMessageService messageService,
 			IErrorHandler errorHandler,
 			IEnumerable<Process> processes)

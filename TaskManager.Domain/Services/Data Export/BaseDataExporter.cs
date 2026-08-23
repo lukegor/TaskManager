@@ -7,13 +7,13 @@ namespace TaskManager.Domain.Services.Data_Export
     public abstract class BaseDataExporter
     {
         protected const string FileNamePrefix = @"\record-";
-        protected string DateTime => _settings.DateTimeFormat;
+        protected string DateTime => _settings.Current.DateTimeFormat;
         protected abstract string Extension { get; }
 
-        private readonly IAppSettings _settings;
+        private readonly ISettingsService _settings;
         private readonly ILogger<BaseDataExporter> _logger;
 
-        public BaseDataExporter(IAppSettings settings, ILogger<BaseDataExporter> logger)
+        public BaseDataExporter(ISettingsService settings, ILogger<BaseDataExporter> logger)
         {
             _settings = settings;
             _logger = logger;
@@ -51,19 +51,6 @@ namespace TaskManager.Domain.Services.Data_Export
             return $"{FileNamePrefix}{System.DateTime.Now.ToString(DateTime)}.{extension}";
         }
 
-        /// <summary>
-        /// Single source of truth for what counts as an expected export failure.
-        /// The catch filter above and the failure classification are one decision:
-        /// returns true (with reason) exactly for failures the file-writing APIs document,
-        /// false for everything else so genuine defects stay loud and reach Tier 2.
-        /// </summary>
-        /// <remarks>
-        /// Coverage follows the documented exception contracts of the write calls used by
-        /// exporters (<see cref="System.IO.File"/>, <see cref="System.Xml.Linq.XDocument.Save"/>,
-        /// ClosedXML SaveAs): DirectoryNotFound/DriveNotFound/PathTooLong are IOException
-        /// subclasses, ArgumentNull is an ArgumentException subclass. SecurityException
-        /// from legacy docs is .NET Framework CAS-only and does not exist on modern .NET.
-        /// </remarks>
         private static bool TryClassifyFailure(Exception ex, out ExportFailureReason reason)
         {
             switch (ex)

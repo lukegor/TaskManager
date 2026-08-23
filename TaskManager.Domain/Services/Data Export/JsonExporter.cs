@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
@@ -9,7 +9,7 @@ namespace TaskManager.Domain.Services.Data_Export
 	{
         protected override string Extension => "json";
 
-        public JsonExporter(IAppSettings settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
+        public JsonExporter(ISettingsService settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
         {
         }
 

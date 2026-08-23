@@ -4,6 +4,7 @@ using System.IO;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services.Data_Export;
+using TaskManager.Utility.Utility;
 
 namespace TaskManager.Tests
 {
@@ -14,10 +15,15 @@ namespace TaskManager.Tests
         private readonly string _tempDirectory =
             Path.Combine(Path.GetTempPath(), $"tm-export-tests-{Guid.NewGuid():N}");
 
-        private static IAppSettings CreateSettings()
+        private static ISettingsService CreateSettings()
         {
-            var settings = Substitute.For<IAppSettings>();
-            settings.DateTimeFormat.Returns("yyyyMMdd_HHmmss");
+            var settings = Substitute.For<ISettingsService>();
+            settings.Current.Returns(new AppSettings
+            {
+                Language = "English",
+                ProcessesRefreshFrequency = RefreshFrequencyType.Low,
+                DateTimeFormat = "yyyyMMdd_HHmmss"
+            });
             return settings;
         }
 
@@ -71,7 +77,7 @@ namespace TaskManager.Tests
         {
             private readonly Exception _failureToThrow;
 
-            public ThrowingExporter(IAppSettings settings, Exception failureToThrow)
+            public ThrowingExporter(ISettingsService settings, Exception failureToThrow)
                 : base(settings, NullLogger<BaseDataExporter>.Instance)
             {
                 _failureToThrow = failureToThrow;

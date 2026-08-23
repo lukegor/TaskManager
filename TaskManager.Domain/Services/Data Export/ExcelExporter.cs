@@ -1,4 +1,4 @@
-﻿using ClosedXML.Excel;
+using ClosedXML.Excel;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Text.Json.Serialization;
@@ -12,7 +12,7 @@ namespace TaskManager.Domain.Services.Data_Export
 	    private const char Separator = ';';
         protected override string Extension => "xlsx";
 
-        public ExcelExporter(IAppSettings settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
+        public ExcelExporter(ISettingsService settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
         {
         }
 

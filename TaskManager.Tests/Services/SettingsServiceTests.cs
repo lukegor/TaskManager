@@ -2,9 +2,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
-using TaskManager.Properties;
+using TaskManager.Domain.Models;
 using TaskManager.Services;
-using TaskManager.Utility.Utility;
 
 namespace TaskManager.Tests
 {
@@ -21,7 +20,7 @@ namespace TaskManager.Tests
             {
             }
 
-            protected override void LoadSettings() =>
+            protected override AppSettings LoadSettings() =>
                 throw new InvalidOperationException("simulated corrupt settings store");
         }
 
@@ -29,16 +28,12 @@ namespace TaskManager.Tests
         public void Constructor_WithCorruptSettings_FallsBackToDefaultsWithoutThrowing()
         {
             var messageService = Substitute.For<IMessageService>();
-            var expectedLanguage = (string?)Settings.Default.Properties[nameof(Settings.Default.LanguageVersion)].DefaultValue;
-            var expectedFrequencyText = (string?)Settings.Default.Properties[nameof(Settings.Default.RefreshFrequency)].DefaultValue;
-            var expectedRefreshFrequency = (RefreshFrequencyType)int.Parse(expectedFrequencyText!);
 
             var service = new CorruptSettingsService(messageService);
 
             messageService.Received(1).ShowMessage(
                 Arg.Any<string>(), Arg.Any<string>(), MessageBoxButton.OK, MessageBoxImage.Error);
-            service.Language.ShouldBe(expectedLanguage);
-            service.RefreshFrequency.ShouldBe(expectedRefreshFrequency);
+            service.Current.ShouldBe(AppSettings.Defaults);
         }
     }
 }

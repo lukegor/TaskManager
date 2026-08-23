@@ -28,15 +28,15 @@ namespace TaskManager.Domain.Services
 
         const int MilisecondMultiplier = 1000;
 
-        private readonly IAppSettings _settings;
+        private readonly ISettingsService _settings;
 
-        public TimerManager(IAppSettings settings)
+        public TimerManager(ISettingsService settings)
         {
             _settings = settings;
 
             _timer = new Timer();
             Interval = MilisecondMultiplier * RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping
-                [(RefreshFrequencyType)_settings.RefreshFrequency];
+                [_settings.Current.ProcessesRefreshFrequency];
             _timer.Elapsed += OnTimerElapsed;
         }
 
