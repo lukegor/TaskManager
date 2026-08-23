@@ -38,6 +38,17 @@ namespace TaskManager.Domain.Services
             Processes.CollectionChanged += Processes_CollectionChanged;
 
             _timer.Elapsed += OnProcessPolling;
+
+            // Live-apply refresh-frequency changes; the event is declared on the
+            // interface, so this wiring is compiler-enforced.
+            _settings.Changed += OnSettingsChanged;
+        }
+
+        private void OnSettingsChanged(AppSettings settings)
+        {
+            var seconds = RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping[settings.ProcessesRefreshFrequency];
+            _timer.UpdatePolling(seconds);
+            _logger.LogInformation("Polling interval updated to {Seconds}s", seconds);
         }
 
         public void Processes_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

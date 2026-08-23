@@ -21,6 +21,7 @@ namespace TaskManager.Tests
     {
         private readonly ProcessManager _manager;
         private readonly ISettingsService _settings;
+        private readonly TimerManager _timer;
         private readonly WinProcess _self = WinProcess.GetCurrentProcess();
         private readonly ProcessPriorityClass _originalPriority;
 
@@ -34,10 +35,11 @@ namespace TaskManager.Tests
                 DateTimeFormat = AppSettings.Defaults.DateTimeFormat
             });
 
+            _timer = new TimerManager(_settings);
             _manager = new ProcessManager(
                 Substitute.For<IDispatcherService>(),
                 _settings,
-                new TimerManager(_settings),
+                _timer,
                 NullLogger<ProcessManager>.Instance);
             _originalPriority = _self.PriorityClass;
         }
@@ -57,6 +59,20 @@ namespace TaskManager.Tests
             _self.Refresh();
             _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
             item.Process.Priority.ShouldBe(10); // AboveNormal => base priority 10
+        }
+
+        [Fact]
+        public void SettingsChanged_AppliesNewPollingIntervalImmediately()
+        {
+            _timer.Interval.ShouldBe(10_000); // Low => 10s, from Current snapshot
+
+            var high = AppSettings.Defaults with
+            {
+                ProcessesRefreshFrequency = RefreshFrequencyType.High
+            };
+            _settings.Changed += Raise.Event<Action<AppSettings>>(high);
+
+            _timer.Interval.ShouldBe(5_000); // High => 5s
         }
 
         [Fact]
