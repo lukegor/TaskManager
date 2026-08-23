@@ -111,9 +111,7 @@ namespace TaskManager
 
             // Register ViewModels
             services.AddSingleton<MainWindowViewModel>();
-            //services.AddTransient<SetPriorityWindowViewModel>();
-            //services.AddTransient<DataExportWindowViewModel>();
-            //services.AddTransient<SettingsWindowViewModel>();
+            services.AddTransient<SettingsWindowViewModel>();
 
             // Register Views
             services.AddSingleton<MainWindow>(sp =>
@@ -126,7 +124,10 @@ namespace TaskManager
 
             //services.AddTransient<SetPriorityWindow>();
             services.AddTransient<DataExportWindow>();
-            //services.AddTransient<SettingsWindow>();
+            services.AddTransient<SettingsWindow>(sp => new SettingsWindow
+            {
+                DataContext = sp.GetRequiredService<SettingsWindowViewModel>()
+            });
         }
 
         private void LaunchGUI() {

@@ -29,6 +29,7 @@ namespace TaskManager.ViewModels
         private readonly IDispatcherService _dispatcherService;
         private readonly ProcessManager _processManager;
         private readonly IErrorHandler _errorHandler;
+        private readonly ISettingsService _settings;
 
         // icon paths
         // ...
@@ -102,13 +103,15 @@ namespace TaskManager.ViewModels
             IMessageService messageService,
             IDispatcherService dispatcherService,
             ProcessManager processManager,
-            IErrorHandler errorHandler)
+            IErrorHandler errorHandler,
+            ISettingsService settings)
         {
             _serviceProvider = serviceProvider;
             _messageService = messageService;
             _dispatcherService = dispatcherService;
             _processManager = processManager;
             _errorHandler = errorHandler;
+            _settings = settings;
 
             ExportCommand = new RelayCommand(Export);
             TerminateCommand = new RelayCommand(TerminateProcesses);
@@ -127,14 +130,21 @@ namespace TaskManager.ViewModels
             _processManager.Processes.CollectionChanged += _processManager.Processes_CollectionChanged;
         }
 
-        private void OpenSettings()
-        {
-            SettingsWindow settingsWindow = new SettingsWindow();
-            var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
-            settingsWindow.DataContext = new SettingsWindowViewModel(settingsService, _errorHandler);
+		private void OpenSettings()
+		{
+            // resx/x:Static localization is baked at compile time, so a language
+            // switch still requires a restart; the decision lives here (composition
+            // flow), not in the settings service.
+            var languageBefore = _settings.Current.Language;
 
+            var settingsWindow = _serviceProvider.GetRequiredService<SettingsWindow>();
             settingsWindow.ShowDialog();
-        }
+
+            if (_settings.Current.Language != languageBefore)
+            {
+                App.Restart();
+            }
+		}
 
 		private void Export()
 		{
