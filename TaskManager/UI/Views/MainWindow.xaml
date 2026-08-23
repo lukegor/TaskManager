@@ -9,6 +9,7 @@
 		xmlns:viewModels="clr-namespace:TaskManager.ViewModels"
 		xmlns:models="clr-namespace:TaskManager.Domain.Models;assembly=TaskManager.Domain"
 		xmlns:controls="clr-namespace:TaskManager.UI.Controls"
+		xmlns:b="clr-namespace:TaskManager.UI.Behaviors"
         xmlns:fmt="clr-namespace:TaskManager.UI.Formatters"
         xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
         mc:Ignorable="d"
@@ -76,7 +77,8 @@
 		<DockPanel Grid.Row="2">
 			<TabControl SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
                 <TabItem Header="{x:Static resx:Strings.Processes}">
-					<controls:BetterDataGrid IsReadOnly="True" AutoGenerateColumns="False" ItemsSource="{Binding Processes, Mode=TwoWay}" Margin="-5,0,0,0">
+					<controls:BetterDataGrid IsReadOnly="True" AutoGenerateColumns="False" ItemsSource="{Binding Processes, Mode=TwoWay}" Margin="-5,0,0,0"
+					                         b:GridColumnVisibility.IsEnabled="True">
 						<controls:BetterDataGrid.RowFormatter>
 							<fmt:ProcessRowFormatter/>
 						</controls:BetterDataGrid.RowFormatter>
@@ -103,7 +105,8 @@
 									</DataTemplate>
 								</DataGridTemplateColumn.CellTemplate>
 							</DataGridTemplateColumn>
-							<DataGridTextColumn Header="{x:Static resx:Strings.Name}" Binding="{Binding Process.Name}" />
+							<DataGridTextColumn Header="{x:Static resx:Strings.Name}" Binding="{Binding Process.Name}"
+							                    b:GridColumnVisibility.Locked="True" />
 							<DataGridTextColumn Header="{x:Static resx:Strings.Pid}" Binding="{Binding Process.Pid}" />
 							<DataGridTextColumn Header="{x:Static resx:Strings.Architecture}" Binding="{Binding Process.ArchitectureTypeDisplay}" />
 							<DataGridTextColumn Header="{x:Static resx:Strings.Path}" Binding="{Binding Process.Path}" Width="200" />
