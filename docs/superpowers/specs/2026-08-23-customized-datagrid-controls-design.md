@@ -1,3 +1,5 @@
+> **SUPERSEDED** by `2026-08-23-datagrid-controls-redesign-design.md` — retained for history only.
+
 # Design Specification: Customized DataGrid Controls Architecture
 
 ## 1. Overview & Objectives
