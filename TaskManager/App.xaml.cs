@@ -7,7 +7,6 @@ using TaskManager.Domain.Services;
 using TaskManager.Domain.Services.Utility;
 using TaskManager.Infrastructure.Logging;
 using TaskManager.Infrastructure.Settings;
-using TaskManager.Properties;
 using TaskManager.Services;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
@@ -64,19 +63,16 @@ namespace TaskManager
 
         private void SetLanguage()
         {
+            var settings = _serviceProvider.GetRequiredService<ISettingsService>();
+            var savedLanguage = settings.Current.Language;
             LanguageDictionary Languages = new LanguageDictionary();
 
             CultureInfo culture;
-            //#if DEBUG
-            //            culture = CultureInfo.InvariantCulture; // Force invariant culture for debugging
-            //#else
-            if (!string.IsNullOrEmpty(Settings.Default.LanguageVersion) && Languages.ContainsKey(Settings.Default.LanguageVersion))
+            if (!string.IsNullOrEmpty(savedLanguage) && Languages.ContainsKey(savedLanguage))
             {
-                culture = Languages[key: Settings.Default.LanguageVersion];
+                culture = Languages[key: savedLanguage];
             }
             else culture = CultureInfo.CurrentCulture; // Use the current culture in release mode
-                                                       //#endif
-                                                       // Set default culture for the application - seems unnecessary
             CultureInfo.DefaultThreadCurrentCulture = culture;
             CultureInfo.DefaultThreadCurrentUICulture = culture;
 
