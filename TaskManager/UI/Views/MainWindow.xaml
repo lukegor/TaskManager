@@ -87,7 +87,7 @@
 						<controls:BetterDataGrid.RowContextMenu>
 							<ContextMenu>
 								<MenuItem Header="{x:Static resx:Strings.Monitor}" Command="{Binding MonitorButtonCommand}"/>
-								<MenuItem Header="{x:Static resx:Strings.CopyToClipboard}" Command="controls:BetterDataGrid.CopyRows"/>
+								<MenuItem Header="{x:Static resx:Strings.CopyToClipboard}" Command="{x:Static controls:BetterDataGrid.CopyRowsCommand}"/>
 								<MenuItem Header="{x:Static resx:Strings.SetPriority}" Command="{Binding SetPriorityCommand}"/>
 								<MenuItem Header="{x:Static resx:Strings.Terminate}" Command="{Binding TerminateCommand}"/>
 							</ContextMenu>
