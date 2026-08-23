@@ -9,7 +9,7 @@
 		xmlns:viewModels="clr-namespace:TaskManager.ViewModels"
 		xmlns:models="clr-namespace:TaskManager.Domain.Models;assembly=TaskManager.Domain"
 		xmlns:controls="clr-namespace:TaskManager.UI.Controls"
-		xmlns:b="clr-namespace:TaskManager.UI.Behaviors"
+        xmlns:fmt="clr-namespace:TaskManager.UI.Formatters"
         xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
@@ -76,33 +76,42 @@
 		<DockPanel Grid.Row="2">
 			<TabControl SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
                 <TabItem Header="{x:Static resx:Strings.Processes}">
-                    <controls:ProcessDataGrid SetPriorityCommand="{Binding SetPriorityCommand}" TerminateCommand="{Binding TerminateCommand}" IsReadOnly="True" AutoGenerateColumns="False" ItemsSource="{Binding Processes, Mode=TwoWay}" Margin="-5,0,0,0" MonitorCommand="{Binding MonitorButtonCommand}">
-						<i:Interaction.Triggers>
-							<i:EventTrigger EventName="SelectionChanged">
-								<i:InvokeCommandAction Command="{Binding BetterDataGrid_SelectionChangedCommand}" PassEventArgsToCommand="True" />
-							</i:EventTrigger>
-						</i:Interaction.Triggers>
-						<controls:ProcessDataGrid.Columns>
-                            <DataGridTemplateColumn Header="{x:Static resx:Strings.Select}">
+					<controls:BetterDataGrid IsReadOnly="True" AutoGenerateColumns="False" ItemsSource="{Binding Processes, Mode=TwoWay}" Margin="-5,0,0,0">
+						<controls:BetterDataGrid.RowFormatter>
+							<fmt:ProcessRowFormatter/>
+						</controls:BetterDataGrid.RowFormatter>
+						<!-- NOTE: Monitor intentionally binds to MonitorButtonCommand which the VM does not expose yet -
+						     identical to the pre-refactor inert behavior; wiring real monitoring is out of scope. -->
+						<controls:BetterDataGrid.RowContextMenu>
+							<ContextMenu>
+								<MenuItem Header="{x:Static resx:Strings.Monitor}" Command="{Binding MonitorButtonCommand}"/>
+								<MenuItem Header="{x:Static resx:Strings.CopyToClipboard}" Command="controls:BetterDataGrid.CopyRows"/>
+								<MenuItem Header="{x:Static resx:Strings.SetPriority}" Command="{Binding SetPriorityCommand}"/>
+								<MenuItem Header="{x:Static resx:Strings.Terminate}" Command="{Binding TerminateCommand}"/>
+							</ContextMenu>
+						</controls:BetterDataGrid.RowContextMenu>
+						<controls:BetterDataGrid.ItemContainerStyle>
+							<Style TargetType="DataGridRow">
+								<Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+							</Style>
+						</controls:BetterDataGrid.ItemContainerStyle>
+						<controls:BetterDataGrid.Columns>
+							<DataGridTemplateColumn Header="{x:Static resx:Strings.Select}">
 								<DataGridTemplateColumn.CellTemplate>
 									<DataTemplate>
-										<CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, RelativeSource={RelativeSource AncestorType={x:Type DataGridRow}}}" HorizontalAlignment="Center" >
-											<i:Interaction.Behaviors>
-												<b:CheckBoxClickBehavior/>
-											</i:Interaction.Behaviors>
-										</CheckBox>
+										<CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center"/>
 									</DataTemplate>
 								</DataGridTemplateColumn.CellTemplate>
 							</DataGridTemplateColumn>
-                            <DataGridTextColumn Header="{x:Static resx:Strings.Name}" Binding="{Binding Process.Name}" />
-                            <DataGridTextColumn Header="{x:Static resx:Strings.Pid}" Binding="{Binding Process.Pid}" />
-                            <DataGridTextColumn Header="{x:Static resx:Strings.Architecture}" Binding="{Binding Process.ArchitectureTypeDisplay}" />
-                            <DataGridTextColumn Header="{x:Static resx:Strings.Path}" Binding="{Binding Process.Path}" Width="200" />
-                            <DataGridTextColumn Header="{x:Static resx:Strings.Priority}" Binding="{Binding Process.Priority}"/>
-                            <DataGridTextColumn Header="{x:Static resx:Strings.ThreadCount}" Binding="{Binding Process.ThreadCount}"/>
-                            <DataGridTextColumn Header="{x:Static resx:Strings.Ppid}" Binding="{Binding Process.Ppid}"/>
-                        </controls:ProcessDataGrid.Columns>
-					</controls:ProcessDataGrid>
+							<DataGridTextColumn Header="{x:Static resx:Strings.Name}" Binding="{Binding Process.Name}" />
+							<DataGridTextColumn Header="{x:Static resx:Strings.Pid}" Binding="{Binding Process.Pid}" />
+							<DataGridTextColumn Header="{x:Static resx:Strings.Architecture}" Binding="{Binding Process.ArchitectureTypeDisplay}" />
+							<DataGridTextColumn Header="{x:Static resx:Strings.Path}" Binding="{Binding Process.Path}" Width="200" />
+							<DataGridTextColumn Header="{x:Static resx:Strings.Priority}" Binding="{Binding Process.Priority}"/>
+							<DataGridTextColumn Header="{x:Static resx:Strings.ThreadCount}" Binding="{Binding Process.ThreadCount}"/>
+							<DataGridTextColumn Header="{x:Static resx:Strings.Ppid}" Binding="{Binding Process.Ppid}"/>
+						</controls:BetterDataGrid.Columns>
+					</controls:BetterDataGrid>
 				</TabItem>
 			</TabControl>
 		</DockPanel>

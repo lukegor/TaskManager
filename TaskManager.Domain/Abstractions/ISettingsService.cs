@@ -4,7 +4,7 @@ namespace TaskManager.Domain.Abstractions
 {
     public interface ISettingsService : IAppSettings
     {
-        abstract void SaveSettings(EditableSettings newSettings);
-        abstract void RestoreDefaults();
+        void SaveSettings(EditableSettings newSettings);
+        void RestoreDefaults();
     }
 }

@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Data;
@@ -106,7 +105,6 @@ namespace TaskManager.ViewModels
         #endregion
 
 		#region Commands
-        public ICommand BetterDataGrid_SelectionChangedCommand { get; private set; }
         public ICommand ExportCommand { get; private set; }
         public ICommand TerminateCommand { get; private set; }
         public ICommand SetPriorityCommand { get; private set; }
@@ -142,7 +140,6 @@ namespace TaskManager.ViewModels
 
         private void BindFunctionsToCommands()
         {
-            BetterDataGrid_SelectionChangedCommand = new RelayCommand<SelectionChangedEventArgs>(BetterDataGrid_OnSelectionChanged);
             ExportCommand = new RelayCommand(Export);
             TerminateCommand = new RelayCommand(TerminateProcesses);
             SetPriorityCommand = new RelayCommand(SetPriority);
@@ -206,26 +203,6 @@ namespace TaskManager.ViewModels
                 view?.Refresh();
             });
         }
-
-		private void BetterDataGrid_OnSelectionChanged(SelectionChangedEventArgs e)
-		{
-			// update model selection state based on newly selected rows
-			foreach (ProcessItem selectedItem in e.AddedItems)
-			{
-				selectedItem.IsSelected = true;
-			}
-			int threadCount = System.Diagnostics.Process.GetCurrentProcess().Threads.Count;
-			System.Diagnostics.Debug.WriteLine($"Thread Count: {threadCount}");
-
-			ThreadPool.GetAvailableThreads(out int workerThreads, out int completionPortThreads);
-			System.Diagnostics.Debug.WriteLine($"Worker Threads Available: {workerThreads}");
-			System.Diagnostics.Debug.WriteLine($"Completion Port Threads Available: {completionPortThreads}");
-			// update model selection state based on newly DEselected rows
-			foreach (ProcessItem unselectedItem in e.RemovedItems)
-			{
-				unselectedItem.IsSelected = false;
-			}
-		}
 
         private bool ValidatePreconditions(Preconditions preconditions)
         {
