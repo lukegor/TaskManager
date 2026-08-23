@@ -1,4 +1,5 @@
-﻿using TaskManager.Domain.Abstractions;
+﻿using Microsoft.Extensions.Logging;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
 namespace TaskManager.Domain.Services.Data_Export
@@ -10,18 +11,30 @@ namespace TaskManager.Domain.Services.Data_Export
         protected abstract string Extension { get; }
 
         private readonly IAppSettings _settings;
+        private readonly ILogger<BaseDataExporter> _logger;
 
-        public BaseDataExporter(IAppSettings settings)
+        public BaseDataExporter(IAppSettings settings, ILogger<BaseDataExporter> logger)
         {
             _settings = settings;
+            _logger = logger;
         }
 
-        public void Export<T>(string dirPath, IEnumerable<T> records) where T : IExportable
+        public ExportResult Export<T>(string dirPath, IEnumerable<T> records) where T : IExportable
         {
-            IList<string> strings = GetStrings(records).ToList();
+            try
+            {
+                IList<string> strings = GetStrings(records).ToList();
 
-            string fullFileName = dirPath + GenerateFileName(Extension);
-            PerformExport<T>(fullFileName, strings);
+                string fullFileName = dirPath + GenerateFileName(Extension);
+                PerformExport<T>(fullFileName, strings);
+                return ExportResult.Success(fullFileName);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
+            {
+                var reason = ClassifyFailure(ex);
+                _logger.LogWarning(ex, "Export as {Extension} failed ({Reason})", Extension, reason);
+                return ExportResult.Fail(reason);
+            }
         }
 
         protected abstract void PerformExport<T>(string fullFileName, IEnumerable<string> strings);
@@ -38,5 +51,12 @@ namespace TaskManager.Domain.Services.Data_Export
         {
             return $"{FileNamePrefix}{System.DateTime.Now.ToString(DateTime)}.{extension}";
         }
+
+        private static ExportFailureReason ClassifyFailure(Exception ex) => ex switch
+        {
+            ArgumentException or NotSupportedException => ExportFailureReason.InvalidPath,
+            UnauthorizedAccessException => ExportFailureReason.AccessDenied,
+            _ => ExportFailureReason.IoError
+        };
     }
 }

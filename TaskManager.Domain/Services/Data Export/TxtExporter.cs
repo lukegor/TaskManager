@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 
 namespace TaskManager.Domain.Services.Data_Export
@@ -7,7 +8,8 @@ namespace TaskManager.Domain.Services.Data_Export
     {
         protected override string Extension => "txt";
 
-        public TxtExporter(IAppSettings settings) : base(settings)
+        public TxtExporter(IAppSettings settings, ILogger<BaseDataExporter> logger)
+            : base(settings, logger)
         {
         }
 

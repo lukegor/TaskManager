@@ -1,4 +1,5 @@
 ﻿using System.Xml.Linq;
+using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Utility.Utility;
 
@@ -8,7 +9,7 @@ namespace TaskManager.Domain.Services.Data_Export
 	{
 		protected override string Extension => "xml";
 
-        public XmlExporter(IAppSettings settings) : base(settings)
+        public XmlExporter(IAppSettings settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
         {
         }
 

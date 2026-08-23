@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 
 namespace TaskManager.Domain.Services.Data_Export
@@ -8,8 +9,8 @@ namespace TaskManager.Domain.Services.Data_Export
 	    private const char Separator = ',';
         protected override string Extension => "csv";
 
-        public CsvExporter(IAppSettings settings)
-            : base(settings)
+        public CsvExporter(IAppSettings settings, ILogger<BaseDataExporter> logger)
+            : base(settings, logger)
         {
         }
 
