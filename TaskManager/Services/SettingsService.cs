@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
@@ -32,10 +33,12 @@ namespace TaskManager.Services
         }
 
         private readonly IMessageService _messageService;
+        private readonly ILogger<SettingsService> _logger;
 
-        public SettingsService(IMessageService messageService)
+        public SettingsService(IMessageService messageService, ILogger<SettingsService> logger)
         {
             _messageService = messageService;
+            _logger = logger;
 
             ProcessPropertyValues();
         }
@@ -48,15 +51,13 @@ namespace TaskManager.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine(ex);
-
+                _logger.LogError(ex, "Loading personalized settings failed; falling back to defaults");
                 _messageService.ShowMessage(Strings.LoadingSettingsFailed, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-
-                LoadDefaultSettings();
+                TryLoadDefaultSettings();
             }
         }
 
-        private void LoadSettings()
+        protected virtual void LoadSettings()
         {
             Language = Settings.Default.LanguageVersion;
             RefreshFrequency = (RefreshFrequencyType)int.Parse(Settings.Default.RefreshFrequency);
@@ -65,9 +66,22 @@ namespace TaskManager.Services
 
         private void LoadDefaultSettings()
         {
-            Language = (string)GetDefaultSettingValue(nameof(Settings.Default.LanguageVersion));
-            RefreshFrequency = (RefreshFrequencyType)Convert.ToInt32(nameof(Settings.Default.RefreshFrequency));
-            DateTimeFormat = (string)GetDefaultSettingValue(nameof(Settings.Default.DateTimeFormat));
+            Language = (string?)GetDefaultSettingValue(nameof(Settings.Default.LanguageVersion)) ?? string.Empty;
+            RefreshFrequency = (RefreshFrequencyType)int.Parse(
+                (string?)GetDefaultSettingValue(nameof(Settings.Default.RefreshFrequency)) ?? ((int)RefreshFrequencyType.Low).ToString());
+            DateTimeFormat = (string?)GetDefaultSettingValue(nameof(Settings.Default.DateTimeFormat)) ?? string.Empty;
+        }
+
+        private void TryLoadDefaultSettings()
+        {
+            try
+            {
+                LoadDefaultSettings();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Loading default settings failed; keeping construction-time values");
+            }
         }
 
         private object GetDefaultSettingValue(string propertyName)
