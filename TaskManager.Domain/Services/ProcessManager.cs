@@ -15,11 +15,11 @@ namespace TaskManager.Domain.Services
     {
         public ObservableCollection<ProcessItem> Processes { get; set => SetProperty(ref field, value); } = new();
 
-        /// <summary>The getter intentionally reports the live collection count; the setter only raises the notification.</summary>
+        /// <summary>The getter reports the live collection count; the setter exists only to raise PropertyChanged.</summary>
         public int ProcessCount
         {
             get => Processes.Count;
-            set => SetProperty(ref field, value);
+            set => OnPropertyChanged();
         }
 
         private readonly IDispatcherService _dispatcher;
