@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Services;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.UI.Views;
 using TaskManager.ViewModels;
 
@@ -21,7 +22,8 @@ namespace TaskManager.Services.Factories
 
             var messageService = _serviceProvider.GetRequiredService<IMessageService>();
             var processManager = _serviceProvider.GetRequiredService<ProcessManager>();
-            var setPriorityWindowVM = new SetPriorityWindowViewModel(messageService, processManager, processes);
+            var errorHandler = _serviceProvider.GetRequiredService<IErrorHandler>();
+            var setPriorityWindowVM = new SetPriorityWindowViewModel(messageService, processManager, processes, errorHandler);
             setPriorityWindow.DataContext = setPriorityWindowVM;
 
             return setPriorityWindow;

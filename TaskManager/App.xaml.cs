@@ -16,16 +16,12 @@ using TaskManager.ViewModels;
 
 namespace TaskManager
 {
-    public delegate void App_Close(object sender);
-
     /// <summary>
     /// Interaction logic for App.xaml
     /// </summary>
     public partial class App : Application
     {
         private IServiceProvider _serviceProvider = null!;
-
-        public static event App_Close? App_Close;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -138,7 +134,6 @@ namespace TaskManager
         }
 
         private void Application_Exit(object sender, ExitEventArgs e) {
-            App_Close?.Invoke(this);
         }
 
         internal static void Restart()

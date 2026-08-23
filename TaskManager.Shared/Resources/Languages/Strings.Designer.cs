@@ -484,5 +484,50 @@ namespace TaskManager.Shared.Resources.Languages {
                 return ResourceManager.GetString("FatalErrorFormat", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to {0} of {1} operations succeeded..
+        /// </summary>
+        public static string OpsCompletedWithFailuresFormat {
+            get {
+                return ResourceManager.GetString("OpsCompletedWithFailuresFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Exporting data to '{0}' failed...
+        /// </summary>
+        public static string ExportFailedFormat {
+            get {
+                return ResourceManager.GetString("ExportFailedFormat", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The file could not be written (I/O error)..
+        /// </summary>
+        public static string ExportFailedIo {
+            get {
+                return ResourceManager.GetString("ExportFailedIo", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Access to the target folder was denied..
+        /// </summary>
+        public static string ExportFailedAccessDenied {
+            get {
+                return ResourceManager.GetString("ExportFailedAccessDenied", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to The target path is invalid..
+        /// </summary>
+        public static string ExportFailedInvalidPath {
+            get {
+                return ResourceManager.GetString("ExportFailedInvalidPath", resourceCulture);
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.ViewModels;
 
 namespace TaskManager.Services.Factories
@@ -18,8 +19,9 @@ namespace TaskManager.Services.Factories
         {
             var settings = _serviceProvider.GetRequiredService<IAppSettings>();
             var messageService = _serviceProvider.GetRequiredService<IMessageService>();
+            var errorHandler = _serviceProvider.GetRequiredService<IErrorHandler>();
 
-            return new DataExportWindowViewModel(_serviceProvider, settings, messageService, data);
+            return new DataExportWindowViewModel(_serviceProvider, settings, messageService, errorHandler, data);
         }
     }
 }

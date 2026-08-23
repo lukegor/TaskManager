@@ -38,6 +38,7 @@
 
   <ItemGroup>
 	<InternalsVisibleTo Include="TaskManager.Tests"/>
+	<InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -29,5 +29,19 @@ namespace TaskManager.Services.ErrorHandling
                 errorHandler.Handle(ex, operationContext);
             }
         }
+
+        public static T Guard<T>(this IErrorHandler errorHandler, Func<T> operation,
+            [CallerMemberName] string operationContext = "")
+        {
+            try
+            {
+                return operation();
+            }
+            catch (Exception ex)
+            {
+                errorHandler.Handle(ex, operationContext);
+                return default!;
+            }
+        }
     }
 }

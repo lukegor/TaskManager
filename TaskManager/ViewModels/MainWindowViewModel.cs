@@ -9,6 +9,7 @@ using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services;
 using TaskManager.Services.Factories;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.Shared.Resources.Languages;
 using TaskManager.UI.Views;
 using TaskManager.Utility.Utility;
@@ -27,6 +28,7 @@ namespace TaskManager.ViewModels
         private readonly IMessageService _messageService;
         private readonly IDispatcherService _dispatcherService;
         private readonly ProcessManager _processManager;
+        private readonly IErrorHandler _errorHandler;
 
         // icon paths
         // ...
@@ -116,12 +118,14 @@ namespace TaskManager.ViewModels
         public MainWindowViewModel(IServiceProvider serviceProvider,
             IMessageService messageService,
             IDispatcherService dispatcherService,
-            ProcessManager processManager)
+            ProcessManager processManager,
+            IErrorHandler errorHandler)
         {
             _serviceProvider = serviceProvider;
             _messageService = messageService;
             _dispatcherService = dispatcherService;
             _processManager = processManager;
+            _errorHandler = errorHandler;
 
             ExportCommand = new RelayCommand(Export);
             TerminateCommand = new RelayCommand(TerminateProcesses);
@@ -129,8 +133,9 @@ namespace TaskManager.ViewModels
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             RefreshCommand = new AsyncRelayCommand(() => _processManager.PerformRefresh(isUserInitiated: true));
 
-            // load running processes asynchronously
-            _processManager.LoadProcesses().GetAwaiter().GetResult();
+            // load running processes synchronously; a startup failure must not abort the app
+            _errorHandler.Guard(() => _processManager.LoadProcesses().GetAwaiter().GetResult(),
+                "loading initial process list");
 			_processManager.StartPollingProcesses();
 
             // binding synchronizers initialization
@@ -138,15 +143,13 @@ namespace TaskManager.ViewModels
 
             // late add events
             _processManager.Processes.CollectionChanged += _processManager.Processes_CollectionChanged;
-
-            App.App_Close += App_Close;
         }
 
         private void OpenSettings()
         {
             SettingsWindow settingsWindow = new SettingsWindow();
             var settingsService = _serviceProvider.GetRequiredService<ISettingsService>();
-            settingsWindow.DataContext = new SettingsWindowViewModel(settingsService);
+            settingsWindow.DataContext = new SettingsWindowViewModel(settingsService, _errorHandler);
 
             settingsWindow.ShowDialog();
         }
@@ -177,7 +180,24 @@ namespace TaskManager.ViewModels
                 return;
             }
 
-            _processManager.TerminateProcesses(GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)));
+            _errorHandler.Guard(() =>
+            {
+                var summary = _processManager.TerminateProcesses(GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)));
+                ReportPartialFailures(summary);
+            });
+        }
+
+        private void ReportPartialFailures(ProcessOpSummary summary)
+        {
+            if (!summary.HasFailures)
+            {
+                return;
+            }
+
+            var total = summary.SucceededPids.Count + summary.Failures.Count;
+            _messageService.ShowMessage(
+                string.Format(Strings.OpsCompletedWithFailuresFormat, summary.SucceededPids.Count, total),
+                Strings.Error, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         private void SetPriority()
@@ -219,11 +239,6 @@ namespace TaskManager.ViewModels
             //}
 
             return true;
-        }
-
-        private async void App_Close(object sender)
-        {
-
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Windows.Input;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Models.Mappers;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.UI.Views;
 using TaskManager.Utility.Utility;
 using TaskManager.ViewModels.Abstraction;
@@ -26,10 +27,12 @@ namespace TaskManager.ViewModels
         public ICommand RestoreDefaultsCommand { get; }
 
         private readonly ISettingsService _settingsService;
+        private readonly IErrorHandler _errorHandler;
 
-        public SettingsWindowViewModel(ISettingsService settingsService)
+        public SettingsWindowViewModel(ISettingsService settingsService, IErrorHandler errorHandler)
         {
             _settingsService = settingsService;
+            _errorHandler = errorHandler;
 
             EditableSettings = settingsService.ToEditables();
 
@@ -39,7 +42,7 @@ namespace TaskManager.ViewModels
 
         public void SaveSettings()
         {
-            _settingsService.SaveSettings(EditableSettings);
+            _errorHandler.Guard(() => _settingsService.SaveSettings(EditableSettings), "saving settings");
         }
     }
 }

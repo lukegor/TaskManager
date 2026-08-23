@@ -268,4 +268,19 @@ Do you want to continue running the application?</value>
 
 Details were written to the log file.</value>
   </data>
+  <data name="OpsCompletedWithFailuresFormat" xml:space="preserve">
+    <value>{0} of {1} operations succeeded.</value>
+  </data>
+  <data name="ExportFailedFormat" xml:space="preserve">
+    <value>Exporting data to '{0}' failed.</value>
+  </data>
+  <data name="ExportFailedIo" xml:space="preserve">
+    <value>The file could not be written (I/O error).</value>
+  </data>
+  <data name="ExportFailedAccessDenied" xml:space="preserve">
+    <value>Access to the target folder was denied.</value>
+  </data>
+  <data name="ExportFailedInvalidPath" xml:space="preserve">
+    <value>The target path is invalid.</value>
+  </data>
 </root>

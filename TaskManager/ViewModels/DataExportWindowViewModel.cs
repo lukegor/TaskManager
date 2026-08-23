@@ -6,6 +6,7 @@ using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services.Utility;
 using TaskManager.Services.Factories;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.Shared.Resources.Languages;
 using TaskManager.UI.Views;
 using TaskManager.Utility.Utility;
@@ -69,15 +70,18 @@ namespace TaskManager.ViewModels
 		private readonly IServiceProvider _serviceProvider;
         private readonly IAppSettings _settings;
 		private readonly IMessageService _messageService;
+		private readonly IErrorHandler _errorHandler;
 
 		public DataExportWindowViewModel(IServiceProvider serviceProvider,
 			IAppSettings settings,
 			IMessageService messageService,
+			IErrorHandler errorHandler,
 			IEnumerable<Process> processes)
 		{
             _serviceProvider = serviceProvider;
             _settings = settings;
 			_messageService = messageService;
+			_errorHandler = errorHandler;
             this.processes = processes;
 
             SelectFolderCommand = new RelayCommand(_folderSelector.SelectFolder);
@@ -88,28 +92,53 @@ namespace TaskManager.ViewModels
 
 		private void OnConfirm()
 		{
-			if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
+			_errorHandler.Guard(() =>
 			{
-                _messageService.ShowMessage("You need to select options", Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-				return;
-			}
+				if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
+				{
+					_messageService.ShowMessage("You need to select options", Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+					return;
+				}
 
-			var window = GetAssociatedWindow<DataExportWindow>();
+				if (!TryExport(exportation, dataType))
+				{
+					return; // failure already reported; keep the window open for a corrected attempt
+				}
 
-			ExportData(exportation, dataType);
-			window.DialogResult = true;
-
+				GetAssociatedWindow<DataExportWindow>().DialogResult = true;
+			}, "exporting process data");
 		}
 
-		private void ExportData(ExportationType exportation, DataType dataType)
+		internal bool TryExport(ExportationType exportation, DataType dataType)
 		{
-            var exporter = _serviceProvider.GetRequiredService<DataExporterFactory>().CreateDataExporter(dataType);
-			switch (exportation)
+			return _errorHandler.Guard(() =>
 			{
-				case ExportationType.Processes:
-					exporter.Export(dirPath, processes);
-					break;
-			}
+				var exporter = _serviceProvider.GetRequiredService<DataExporterFactory>().CreateDataExporter(dataType);
+
+				switch (exportation)
+				{
+					case ExportationType.Processes:
+						var result = exporter.Export(dirPath, processes);
+						if (result.IsSuccess)
+						{
+							return true;
+						}
+
+						_messageService.ShowMessage(
+							string.Format(Strings.ExportFailedFormat, dirPath) + " " + DescribeFailure(result.FailureReason!.Value),
+							Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+						return false;
+				}
+
+				return false;
+			}, "exporting process data");
 		}
+
+		private static string DescribeFailure(ExportFailureReason reason) => reason switch
+		{
+			ExportFailureReason.AccessDenied => Strings.ExportFailedAccessDenied,
+			ExportFailureReason.InvalidPath => Strings.ExportFailedInvalidPath,
+			_ => Strings.ExportFailedIo
+		};
 	}
 }
