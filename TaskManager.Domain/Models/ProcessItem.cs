@@ -11,21 +11,19 @@ namespace TaskManager.Domain.Models
     /// </summary>
     public class ProcessItem : INotifyPropertyChanged
     {
-        private bool isSelected;
-
         public required Process Process { get; set; }
 
         public bool IsSelected
         {
-            get => isSelected;
+            get;
             set
             {
-                if (isSelected == value)
+                if (field == value)
                 {
                     return;
                 }
 
-                isSelected = value;
+                field = value;
                 OnPropertyChanged();
             }
         }

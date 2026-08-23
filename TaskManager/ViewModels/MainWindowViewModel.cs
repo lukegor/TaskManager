@@ -51,19 +51,18 @@ namespace TaskManager.ViewModels
         //}
         #endregion
         #region TwoWay_Bindings
-        private ObservableCollection<ProcessItem> _processes = new();
-		public ObservableCollection<ProcessItem> Processes
-		{
-			get => _processes;
-			set
-			{
-				if (SetProperty(ref _processes, value))
-				{
-					// sync with ProcessManager when MainWindowViewModel.Processes changes
-					_processManager.Processes = value;
-				}
-			}
-		}
+        public ObservableCollection<ProcessItem> Processes
+        {
+            get;
+            set
+            {
+                if (SetProperty(ref field, value))
+                {
+                    // sync with ProcessManager when MainWindowViewModel.Processes changes
+                    _processManager.Processes = value;
+                }
+            }
+        } = new();
         #endregion
 
         #region Binding_Synchronizers
@@ -84,25 +83,9 @@ namespace TaskManager.ViewModels
         #endregion
 
         #region PureUI_Bindings
-        private ImageSource? _monitoringButtonIcon;
-        public ImageSource? MonitoringButtonIcon
-        {
-            get => _monitoringButtonIcon;
-            set
-            {
-                SetProperty(ref _monitoringButtonIcon, value);
-            }
-        }
+        public ImageSource? MonitoringButtonIcon { get; set => SetProperty(ref field, value); }
 
-        private int selectedTabIndex;
-        public int SelectedTabIndex
-        {
-            get => selectedTabIndex;
-            set
-            {
-                SetProperty(ref selectedTabIndex, value);
-            }
-        }
+        public int SelectedTabIndex { get; set => SetProperty(ref field, value); }
         #endregion
         #endregion
 

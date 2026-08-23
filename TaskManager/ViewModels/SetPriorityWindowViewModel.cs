@@ -20,12 +20,7 @@ namespace TaskManager.ViewModels
     {
         public IList<string> Priorities { get; } = PriorityTypeHelper.GetAllLocalized().ToList();
 
-        private ProcessPriorityClass? _priority = null;
-        public ProcessPriorityClass? Priority
-        {
-            get { return _priority; }
-            set { SetProperty(ref _priority, value); }
-        }
+        public ProcessPriorityClass? Priority { get; set => SetProperty(ref field, value); }
 
         public ICommand OnConfirmCommand { get; }
 

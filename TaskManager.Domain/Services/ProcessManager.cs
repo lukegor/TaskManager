@@ -13,18 +13,13 @@ namespace TaskManager.Domain.Services
 {
     public class ProcessManager : ObservableObject
     {
-        private ObservableCollection<ProcessItem> processes = new ObservableCollection<ProcessItem>();
-        public ObservableCollection<ProcessItem> Processes
-        {
-            get { return processes; }
-            set { SetProperty(ref processes, value); }
-        }
+        public ObservableCollection<ProcessItem> Processes { get; set => SetProperty(ref field, value); } = new();
 
-        private int processCount;
+        /// <summary>The getter intentionally reports the live collection count; the setter only raises the notification.</summary>
         public int ProcessCount
         {
-            get { return processes.Count; }
-            set { SetProperty(ref processCount, value); }
+            get => Processes.Count;
+            set => SetProperty(ref field, value);
         }
 
         private readonly IDispatcherService _dispatcher;
@@ -163,10 +158,7 @@ namespace TaskManager.Domain.Services
             foreach (var pid in summary.SucceededPids)
             {
                 var storedItem = Processes.FirstOrDefault(p => p.Process.Pid == pid);
-                if (storedItem != null)
-                {
-                    storedItem.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
-                }
+                storedItem?.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
             }
 
             return summary;

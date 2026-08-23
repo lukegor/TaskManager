@@ -11,26 +11,11 @@ namespace TaskManager.Services
 {
     internal class SettingsService : ObservableObject, IAppSettings, ISettingsService
     {
-        private string _language = string.Empty;
-        public string Language
-        {
-            get { return _language; }
-            set { SetProperty(ref _language, value); }
-        }
+        public string Language { get; set => SetProperty(ref field, value); } = string.Empty;
 
-        private RefreshFrequencyType _refreshFrequency;
-        public RefreshFrequencyType RefreshFrequency
-        {
-            get { return _refreshFrequency; }
-            set { SetProperty(ref _refreshFrequency, value); }
-        }
+        public RefreshFrequencyType RefreshFrequency { get; set => SetProperty(ref field, value); }
 
-        private string _dateTimeFormat = string.Empty;
-        public string DateTimeFormat
-        {
-            get { return _dateTimeFormat; }
-            set { SetProperty(ref _dateTimeFormat, value); }
-        }
+        public string DateTimeFormat { get; set => SetProperty(ref field, value); } = string.Empty;
 
         private readonly IMessageService _messageService;
         private readonly ILogger<SettingsService> _logger;

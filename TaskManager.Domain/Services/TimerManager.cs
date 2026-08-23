@@ -11,13 +11,12 @@ namespace TaskManager.Domain.Services
 
         public event ElapsedEventHandler? Elapsed;
 
-        private double _intervalValue;
         public double Interval
         {
-            get {  return _intervalValue; }
+            get;
             set
             {
-                _intervalValue = value;
+                field = value;
                 if (value == 0)
                 {
                     Stop();

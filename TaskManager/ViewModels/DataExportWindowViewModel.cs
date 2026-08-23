@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Input;
@@ -22,32 +22,21 @@ namespace TaskManager.ViewModels
 		#region All_Fields
 		private readonly FolderSelector _folderSelector = new FolderSelector();
 
-		private ExportationType? exportation = null;
-		public ExportationType? Exportation
-		{
-			get { return exportation; }
-			set { SetProperty(ref exportation, value); }
-		}
+		public ExportationType? Exportation { get; set => SetProperty(ref field, value); }
 
-		private DataType? dataType = null;
-		public DataType? DataType
-		{
-			get { return dataType; }
-			set { SetProperty(ref dataType, value); }
-		}
+		public DataType? DataType { get; set => SetProperty(ref field, value); }
 
-		private string dirPath = string.Empty;
 		public string DirPath
 		{
-			get { return dirPath; }
+			get;
 			set
 			{
-				if (SetProperty(ref dirPath, value))
+				if (SetProperty(ref field, value))
 				{
 					_folderSelector.DirPath = value;
 				}
 			}
-		}
+		} = string.Empty;
 
 		public IList<ExportationType> Exportations { get; } = Enum.GetValues<ExportationType>();
 		public IList<DataType> Extensions { get; } = Enum.GetValues<DataType>();
@@ -118,14 +107,14 @@ namespace TaskManager.ViewModels
 				switch (exportation)
 				{
 					case ExportationType.Processes:
-						var result = exporter.Export(dirPath, processes);
+						var result = exporter.Export(DirPath, processes);
 						if (result.IsSuccess)
 						{
 							return true;
 						}
 
 						_messageService.ShowMessage(
-							string.Format(Strings.ExportFailedFormat, dirPath) + " " + DescribeFailure(result.FailureReason!.Value),
+							string.Format(Strings.ExportFailedFormat, DirPath) + " " + DescribeFailure(result.FailureReason!.Value),
 							Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
 						return false;
 				}
