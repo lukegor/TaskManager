@@ -1,9 +1,11 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Services;
 using TaskManager.Domain.Services.Utility;
+using TaskManager.Infrastructure.Logging;
 using TaskManager.Properties;
 using TaskManager.Services;
 using TaskManager.Services.Factories;
@@ -63,6 +65,12 @@ namespace TaskManager
 
         private void ConfigureServices(IServiceCollection services)
         {
+            services.AddLogging(logging =>
+            {
+                logging.SetMinimumLevel(LogLevel.Debug);
+                logging.AddProvider(new FileLoggerProvider());
+            });
+
             // Register Services
             services.AddSingleton<IAppSettings, SettingsService>();
             services.AddSingleton<ISettingsService, SettingsService>();
