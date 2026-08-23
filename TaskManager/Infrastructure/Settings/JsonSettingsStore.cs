@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Utility.Utility;
 
@@ -12,7 +13,7 @@ namespace TaskManager.Infrastructure.Settings
     /// Atomic writes (temp file + rename), versioned envelope, per-field fallback to
     /// defaults, and quarantining of unparsable files instead of crashing startup.
     /// </summary>
-    internal sealed class JsonSettingsStore
+    internal sealed class JsonSettingsStore : ISettingsStore
     {
         private const int CurrentVersion = 1;
 
@@ -45,6 +46,7 @@ namespace TaskManager.Infrastructure.Settings
             }
             catch (Exception ex)
             {
+                // Contract of ISettingsStore.Load: reading must never throw.
                 _logger.LogWarning(ex, "Settings file could not be read; using defaults");
                 return AppSettings.Defaults;
             }

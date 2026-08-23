@@ -1,71 +1,53 @@
 ﻿using Microsoft.Extensions.Logging;
-using System.Windows;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
-using TaskManager.Properties;
-using TaskManager.Shared.Resources.Languages;
-using TaskManager.Utility.Utility;
 
 namespace TaskManager.Services
 {
-    /// <summary>Interim adapter over the legacy ApplicationSettingsBase store;
-    /// replaced by the JSON-backed implementation in this phase.</summary>
-    internal class SettingsService : ISettingsService
+    /// <summary>
+    /// Single mutation pipeline for user settings: validate → persist → swap → notify.
+    /// Persistence failures surface as exceptions to the caller's error guard; the
+    /// in-memory snapshot is only swapped after a successful save.
+    /// </summary>
+    internal sealed class SettingsService : ISettingsService
     {
-        private readonly IMessageService _messageService;
+        private readonly ISettingsStore _store;
         private readonly ILogger<SettingsService> _logger;
 
-        public AppSettings Current { get; private set; } = AppSettings.Defaults;
+        public AppSettings Current { get; private set; }
 
         public event Action<AppSettings>? Changed;
 
-        public SettingsService(IMessageService messageService, ILogger<SettingsService> logger)
+        public SettingsService(ISettingsStore store, ILogger<SettingsService> logger)
         {
-            _messageService = messageService;
+            _store = store;
             _logger = logger;
 
-            ProcessPropertyValues();
-        }
+            Current = store.Load();
 
-        private void ProcessPropertyValues()
-        {
-            try
+            if (!AppSettings.TryValidate(Current, out var error))
             {
-                Current = LoadSettings();
+                // Store already degrades per-field; this guards against future regressions.
+                _logger.LogWarning("Loaded settings failed validation ({Error}); using defaults", error);
+                Current = AppSettings.Defaults;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Loading personalized settings failed; falling back to defaults");
-                _messageService.ShowMessage(Strings.LoadingSettingsFailed, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        protected virtual AppSettings LoadSettings()
-        {
-            return new AppSettings
-            {
-                Language = Settings.Default.LanguageVersion,
-                ProcessesRefreshFrequency = (RefreshFrequencyType)int.Parse(Settings.Default.RefreshFrequency),
-                DateTimeFormat = Settings.Default.DateTimeFormat
-            };
         }
 
         public void Update(AppSettings settings)
         {
-            var isChangedLanguage = Settings.Default.LanguageVersion != settings.Language;
-
-            Settings.Default.LanguageVersion = settings.Language;
-            Settings.Default.RefreshFrequency = ((int)settings.ProcessesRefreshFrequency).ToString();
-            Settings.Default.DateTimeFormat = settings.DateTimeFormat;
-            Settings.Default.Save();
-
-            Current = settings;
-            Changed?.Invoke(settings);
-
-            if (isChangedLanguage)
+            if (!AppSettings.TryValidate(settings, out var error))
             {
-                App.Restart();
+                throw new SettingsValidationException(error);
             }
+
+            _store.Save(settings);
+
+            var previous = Current;
+            Current = settings;
+            _logger.LogInformation("Settings updated (language: {Before} -> {After})",
+                previous.Language, settings.Language);
+
+            Changed?.Invoke(settings);
         }
     }
 }

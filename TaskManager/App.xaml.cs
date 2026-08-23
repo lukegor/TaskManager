@@ -6,6 +6,7 @@ using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Services;
 using TaskManager.Domain.Services.Utility;
 using TaskManager.Infrastructure.Logging;
+using TaskManager.Infrastructure.Settings;
 using TaskManager.Properties;
 using TaskManager.Services;
 using TaskManager.Services.ErrorHandling;
@@ -93,6 +94,7 @@ namespace TaskManager
             });
 
             // Register Services
+            services.AddSingleton<ISettingsStore, JsonSettingsStore>();
             services.AddSingleton<ISettingsService, SettingsService>();
             services.AddSingleton<IMessageService, MessageService>();
             services.AddSingleton<IErrorHandler, UiErrorHandler>();

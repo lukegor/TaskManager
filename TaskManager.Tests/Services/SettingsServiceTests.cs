@@ -1,38 +1,69 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
-using System.Windows;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Services;
+using TaskManager.Utility.Utility;
 
 namespace TaskManager.Tests
 {
     /// <summary>
-    /// Regression contract: corrupt personalized settings degrade to defaults.
-    /// Neither the initial load nor the fallback may escape the constructor.
+    /// Contract of the settings mutation pipeline: validate → persist → swap → notify,
+    /// with nothing persisted or announced when validation rejects the candidate.
     /// </summary>
     public class SettingsServiceTests
     {
-        private sealed class CorruptSettingsService : SettingsService
-        {
-            public CorruptSettingsService(IMessageService messageService)
-                : base(messageService, NullLogger<SettingsService>.Instance)
-            {
-            }
+        private readonly ISettingsStore _store = Substitute.For<ISettingsStore>();
 
-            protected override AppSettings LoadSettings() =>
-                throw new InvalidOperationException("simulated corrupt settings store");
+        private SettingsService CreateService() =>
+            new(_store, NullLogger<SettingsService>.Instance);
+
+        [Fact]
+        public void Constructor_LoadsCurrentFromStore()
+        {
+            var stored = AppSettings.Defaults with { Language = "polski" };
+            _store.Load().Returns(stored);
+
+            CreateService().Current.ShouldBe(stored);
         }
 
         [Fact]
-        public void Constructor_WithCorruptSettings_FallsBackToDefaultsWithoutThrowing()
+        public void Constructor_WithInvalidStoredSnapshot_YieldsDefaults()
         {
-            var messageService = Substitute.For<IMessageService>();
+            var invalid = AppSettings.Defaults with { Language = "klingon" };
+            _store.Load().Returns(invalid);
 
-            var service = new CorruptSettingsService(messageService);
+            CreateService().Current.ShouldBe(AppSettings.Defaults);
+        }
 
-            messageService.Received(1).ShowMessage(
-                Arg.Any<string>(), Arg.Any<string>(), MessageBoxButton.OK, MessageBoxImage.Error);
+        [Fact]
+        public void Update_PersistsSwapsAndRaisesChangedWithSameSnapshot()
+        {
+            var service = CreateService();
+            AppSettings? announced = null;
+            service.Changed += s => announced = s;
+
+            var candidate = AppSettings.Defaults with { ProcessesRefreshFrequency = RefreshFrequencyType.High };
+            service.Update(candidate);
+
+            _store.Received(1).Save(candidate);
+            service.Current.ShouldBe(candidate);
+            announced.ShouldBe(candidate);
+        }
+
+        [Fact]
+        public void Update_WithInvalidCandidate_PersistsNothingAndRaisesNothing()
+        {
+            var service = CreateService();
+            var raised = 0;
+            service.Changed += _ => raised++;
+
+            var invalid = AppSettings.Defaults with { Language = "deutsch" };
+            var act = () => service.Update(invalid);
+
+            Should.Throw<SettingsValidationException>(act);
+            _store.DidNotReceive().Save(Arg.Any<AppSettings>());
+            raised.ShouldBe(0);
             service.Current.ShouldBe(AppSettings.Defaults);
         }
     }
