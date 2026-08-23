@@ -1,34 +1,39 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services;
 using TaskManager.Utility.Utility;
 using WinProcess = System.Diagnostics.Process;
+using WinProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using ProcessPriorityClass = System.Diagnostics.ProcessPriorityClass;
 
 namespace TaskManager.Tests
 {
     /// <summary>
-    /// Behavior contract of ProcessManager.SetPriority:
-    /// every selected PID gets its real OS priority class changed, and the matching
-    /// tracked ProcessItem gets its displayed base-priority value updated.
+    /// Behavior contract of ProcessManager batch operations:
+    /// every selected PID gets its real OS operation applied, expected failures are
+    /// reported as data without aborting the batch, and the matching tracked
+    /// ProcessItem gets its displayed base-priority value updated.
     /// The test process itself is used as the safely mutable target.
     /// </summary>
     public class ProcessManagerTests : IDisposable
     {
         private readonly ProcessManager _manager;
+        private readonly IAppSettings _settings;
         private readonly WinProcess _self = WinProcess.GetCurrentProcess();
         private readonly ProcessPriorityClass _originalPriority;
 
         public ProcessManagerTests()
         {
-            IAppSettings settings = Substitute.For<IAppSettings>();
-            settings.RefreshFrequency.Returns(RefreshFrequencyType.Low); // timer is never started
+            _settings = Substitute.For<IAppSettings>();
+            _settings.RefreshFrequency.Returns(RefreshFrequencyType.Low); // timer is never started
 
             _manager = new ProcessManager(
                 Substitute.For<IDispatcherService>(),
-                settings,
-                new TimerManager(settings));
+                _settings,
+                new TimerManager(_settings),
+                NullLogger<ProcessManager>.Instance);
             _originalPriority = _self.PriorityClass;
         }
 
@@ -61,6 +66,82 @@ namespace TaskManager.Tests
             _self.Refresh();
             Assert.Equal(ProcessPriorityClass.BelowNormal, _self.PriorityClass);
             Assert.Equal(6, item.Process.Priority); // BelowNormal => base priority 6
+        }
+
+        [Fact]
+        public void SetPriority_StalePid_IsReportedInSummary()
+        {
+            int stalePid = GetUnusedPid();
+
+            var summary = _manager.SetPriority(new[] { stalePid }, ProcessPriorityClass.Normal);
+
+            Assert.Empty(summary.SucceededPids);
+            var failure = Assert.Single(summary.Failures);
+            Assert.Equal(stalePid, failure.Pid);
+            Assert.Equal(ProcessOpFailureReason.ProcessExited, failure.Reason);
+        }
+
+        [Fact]
+        public void SetPriority_MixedBatch_ReportsBothOutcomesAndSurvives()
+        {
+            int stalePid = GetUnusedPid();
+
+            var summary = _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.AboveNormal);
+
+            Assert.Equal(new[] { _self.Id }, summary.SucceededPids);
+            Assert.Single(summary.Failures);
+            _self.Refresh();
+            Assert.Equal(ProcessPriorityClass.AboveNormal, _self.PriorityClass);
+        }
+
+        [Fact]
+        public void TerminateProcesses_KillsTarget_AndReportsStalePidWithoutAborting()
+        {
+            using var victim = WinProcess.Start(new WinProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/c ping -n 30 127.0.0.1 > nul",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+            Assert.NotNull(victim);
+            int stalePid = GetUnusedPid();
+
+            try
+            {
+                var summary = _manager.TerminateProcesses(new[] { victim.Id, stalePid });
+
+                Assert.Equal(new[] { victim.Id }, summary.SucceededPids);
+                var failure = Assert.Single(summary.Failures);
+                Assert.Equal(stalePid, failure.Pid);
+                Assert.True(victim.WaitForExit(5_000));
+                Assert.True(victim.HasExited);
+            }
+            finally
+            {
+                if (!victim.HasExited)
+                {
+                    try { victim.Kill(); } catch { /* best-effort cleanup */ }
+                }
+            }
+        }
+
+        [Fact]
+        public async Task SafePollingRefreshAsync_SwallowsAndLogsUnexpectedFailures()
+        {
+            var throwingDispatcher = Substitute.For<IDispatcherService>();
+            throwingDispatcher
+                .When(d => d.Invoke(Arg.Any<Action>()))
+                .Do(_ => throw new InvalidOperationException("dispatcher died"));
+            var failingManager = new ProcessManager(
+                throwingDispatcher,
+                _settings,
+                new TimerManager(_settings),
+                NullLogger<ProcessManager>.Instance);
+            failingManager.Processes.Add(
+                new ProcessItem(new Process { Name = "ghost", Pid = GetUnusedPid(), Path = string.Empty }));
+
+            await failingManager.SafePollingRefreshAsync();
         }
 
         private ProcessItem GivenTrackedProcess(int pid)

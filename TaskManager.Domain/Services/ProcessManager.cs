@@ -1,4 +1,5 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using Microsoft.Extensions.Logging;
 using NtApiDotNet;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -29,6 +30,7 @@ namespace TaskManager.Domain.Services
         private readonly IDispatcherService _dispatcher;
         private readonly IAppSettings _settings;
         private readonly TimerManager _timer;
+        private readonly ILogger<ProcessManager> _logger;
 
         // Event handler to update the field when the setting changes.
         private void Default_PropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -40,11 +42,13 @@ namespace TaskManager.Domain.Services
             }
         }
 
-        public ProcessManager(IDispatcherService dispatcher, IAppSettings settings, TimerManager timerManager)
+        public ProcessManager(IDispatcherService dispatcher, IAppSettings settings, TimerManager timerManager,
+            ILogger<ProcessManager> logger)
         {
             _dispatcher = dispatcher;
             _settings = settings;
             _timer = timerManager;
+            _logger = logger;
 
             Processes.CollectionChanged += Processes_CollectionChanged;
 
@@ -78,8 +82,20 @@ namespace TaskManager.Domain.Services
 
         private async void OnProcessPolling(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now}] Polling");
-            await PerformRefresh(isUserInitiated: false);
+            await SafePollingRefreshAsync();
+        }
+
+        internal async Task SafePollingRefreshAsync()
+        {
+            try
+            {
+                await PerformRefresh(isUserInitiated: false);
+            }
+            catch (Exception ex)
+            {
+                // async void callback: an escaping exception would terminate the process
+                _logger.LogWarning(ex, "Polling refresh failed");
+            }
         }
 
         public async Task PerformRefresh(bool isUserInitiated)
@@ -126,37 +142,72 @@ namespace TaskManager.Domain.Services
             }
         }
 
-        public void TerminateProcesses(IEnumerable<int> selectedProcesses)
+        public ProcessOpSummary TerminateProcesses(IEnumerable<int> selectedProcesses)
         {
-            foreach (var pId in selectedProcesses)
+            return ExecutePerPid(selectedProcesses, pid =>
             {
-                var process = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(pId));
+                using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.Kill();
-                System.Diagnostics.Debug.WriteLine($"Process {pId} was terminated");
-            }
+                _logger.LogDebug("Process {Pid} was terminated", pid);
+            });
         }
 
-        public void SetPriority(IEnumerable<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
+        public ProcessOpSummary SetPriority(IEnumerable<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
         {
-            foreach (var pId in selectedProcesses)
+            var summary = ExecutePerPid(selectedProcesses, pid =>
             {
-                try
-                {
-                    var process = System.Diagnostics.Process.GetProcessById(Convert.ToInt32(pId));
-                    process.PriorityClass = priority;
-                }
-                catch (ArgumentException)
-                {
-                    // process exited between selection and confirmation; no OS-side update possible
-                }
+                using var process = System.Diagnostics.Process.GetProcessById(pid);
+                process.PriorityClass = priority;
+            });
 
-                var storedItem = Processes.FirstOrDefault(p => p.Process.Pid == pId);
+            foreach (var pid in summary.SucceededPids)
+            {
+                var storedItem = Processes.FirstOrDefault(p => p.Process.Pid == pid);
                 if (storedItem != null)
                 {
                     storedItem.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
                 }
             }
+
+            return summary;
         }
+
+        /// <remarks>
+        /// Expected OS-level rejections are recorded per PID and never abort the batch;
+        /// they are data (<see cref="ProcessOpSummary"/>), not exceptions crossing the layer boundary.
+        /// </remarks>
+        private ProcessOpSummary ExecutePerPid(IEnumerable<int> selectedPids, Action<int> operation)
+        {
+            var succeeded = new List<int>();
+            var failures = new List<ProcessOpFailure>();
+
+            foreach (var pid in selectedPids)
+            {
+                try
+                {
+                    operation(pid);
+                    succeeded.Add(pid);
+                }
+                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
+                {
+                    var reason = ClassifyFailure(ex);
+                    _logger.LogWarning(ex, "Process operation failed for PID {Pid} ({Reason})", pid, reason);
+                    failures.Add(new ProcessOpFailure(pid, reason));
+                }
+            }
+
+            return new ProcessOpSummary { SucceededPids = succeeded, Failures = failures };
+        }
+
+        private const int ErrorAccessDenied = 5;
+
+        private static ProcessOpFailureReason ClassifyFailure(Exception ex) => ex switch
+        {
+            Win32Exception { NativeErrorCode: ErrorAccessDenied } => ProcessOpFailureReason.AccessDenied,
+            ArgumentException => ProcessOpFailureReason.ProcessExited,
+            InvalidOperationException => ProcessOpFailureReason.ProcessExited,
+            _ => ProcessOpFailureReason.Unknown
+        };
 
         /// <summary>
         ///
@@ -166,7 +217,7 @@ namespace TaskManager.Domain.Services
         /// In order to get some processes, it requires Admin privileges and in some cases, even this isn't enough
         /// TO-DO: change processInfo retrieving method so that it returns ALL processes
         /// </remarks>
-        private static IEnumerable<Process> GetProcesses()
+        private IEnumerable<Process> GetProcesses()
         {
             var allProcesses = System.Diagnostics.Process.GetProcesses();
 
@@ -200,9 +251,9 @@ namespace TaskManager.Domain.Services
                         };
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //System.Diagnostics.Debug.WriteLine(ex.ToString());
+                    _logger.LogDebug(ex, "Skipped inaccessible process during enumeration");
                     continue;
                 }
                 yield return processInfo;
