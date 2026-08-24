@@ -10,9 +10,9 @@ namespace TaskManager.Domain.Services
     /// Expensive per-PID work requiring a handle: image path and WOW64 bitness.
     /// Stateless — caching (once per PID, both values immutable while running) is the caller's job.
     /// </summary>
-    public sealed class ProcessEnricher(ILogger<ProcessEnricher> logger)
+    public class ProcessEnricher(ILogger<ProcessEnricher> logger)
     {
-        public bool TryEnrich(int pid, out ProcessEnrichment enrichment)
+        public virtual bool TryEnrich(int pid, out ProcessEnrichment enrichment)
         {
             enrichment = default;
             try

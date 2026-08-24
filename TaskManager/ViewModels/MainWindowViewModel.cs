@@ -73,7 +73,8 @@ namespace TaskManager.ViewModels
             TerminateCommand = new RelayCommand(TerminateProcesses);
             SetPriorityCommand = new RelayCommand(SetPriority);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
-            RefreshCommand = new AsyncRelayCommand(() => _processManager.PerformRefresh(isUserInitiated: true));
+            RefreshCommand = new AsyncRelayCommand(() =>
+                _errorHandler.GuardAsync(() => _processManager.PerformRefresh(isUserInitiated: true), "refreshing process list"));
 
             // load running processes in the background; the window must not block on enumeration
             _ = _errorHandler.GuardAsync(() => _processManager.LoadProcesses(), "loading initial process list");

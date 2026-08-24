@@ -71,13 +71,16 @@ namespace TaskManager.Domain.Services
             _logger.LogInformation("Polling interval updated to {Seconds}s", seconds);
         }
 
+        /// <summary>Initial fill; identical pipeline to a polling tick.</summary>
         public async Task LoadProcesses() => await RunRefreshAsync(manual: false);
 
+        /// <summary>Starts the polling timer; composition flow calls this once at startup.</summary>
         public void StartPollingProcesses()
         {
             _timer.Start();
         }
 
+        /// <summary>Runs a refresh; user-initiated runs queue behind any in-flight refresh and restart the polling timer afterwards.</summary>
         public async Task PerformRefresh(bool isUserInitiated)
         {
             await RunRefreshAsync(manual: isUserInitiated);
@@ -152,17 +155,23 @@ namespace TaskManager.Domain.Services
             PipelineBatch batch = await Task.Run(() =>
             {
                 var diff = ProcessDiffEngine.Compute(current, snapshot);
+
                 var enrichments = new Dictionary<int, ProcessEnrichment>();
+                List<ProcessSnapshot> toProbe;
                 lock (_index)
                 {
-                    foreach (var added in diff.Added)
+                    toProbe = [.. diff.Added.Where(a => !_enrichment.ContainsKey(a.Pid))];
+                    foreach (var added in diff.Added.Where(a => _enrichment.ContainsKey(a.Pid)))
                     {
-                        if (!_enrichment.TryGetValue(added.Pid, out var e) && !_enricher.TryEnrich(added.Pid, out e))
-                        {
-                            e = new ProcessEnrichment(string.Empty, ArchitectureType.Unknown);
-                        }
-                        enrichments[added.Pid] = e;
+                        enrichments[added.Pid] = _enrichment[added.Pid];
                     }
+                }
+
+                foreach (var added in toProbe)
+                {
+                    enrichments[added.Pid] = _enricher.TryEnrich(added.Pid, out var e)
+                        ? e
+                        : new ProcessEnrichment(string.Empty, ArchitectureType.Unknown);
                 }
 
                 return new PipelineBatch(diff, enrichments);
@@ -174,8 +183,9 @@ namespace TaskManager.Domain.Services
         private readonly record struct PipelineBatch(ProcessListDiff Batch, Dictionary<int, ProcessEnrichment> Enrichments);
 
         /// <summary>
-        /// The ONLY mutation point of _items/_index/_enrichment. Runs on the UI thread.
-        /// Worker threads read _index/_enrichment under lock(_index); _items is touched by
+        /// The only mutation point of _items/_index/_enrichment on the UI thread.
+        /// SetPriority's priority writeback is the sole off-gate mutation (UI-thread command handler);
+        /// workers read _index/_enrichment under lock(_index); _items is touched by
         /// no thread except the UI thread.
         /// </summary>
         private void ApplyBatch(ProcessListDiff diff, Dictionary<int, ProcessEnrichment> enrichedNew)
@@ -232,6 +242,7 @@ namespace TaskManager.Domain.Services
             target.Ppid = s.Ppid;
         }
 
+        /// <summary>Materialized deep copy of current rows; safe to hold across refreshes.</summary>
         public IReadOnlyList<Process> SnapshotForExport()
         {
             lock (_index)
@@ -251,6 +262,7 @@ namespace TaskManager.Domain.Services
             Ppid = p.Ppid,
         };
 
+        /// <summary>Applies the OS operation per PID; expected OS rejections are reported as data, never aborting the batch.</summary>
         public ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> selectedProcesses)
         {
             return ExecutePerPid(selectedProcesses, pid =>
@@ -261,6 +273,7 @@ namespace TaskManager.Domain.Services
             });
         }
 
+        /// <summary>Applies the OS operation per PID; expected OS rejections are reported as data, never aborting the batch.</summary>
         public ProcessOpSummary SetPriority(IReadOnlyCollection<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
         {
             var summary = ExecutePerPid(selectedProcesses, pid =>
@@ -283,6 +296,10 @@ namespace TaskManager.Domain.Services
             return summary;
         }
 
+        /// <remarks>
+        /// Expected OS-level rejections are recorded per PID and never abort the batch;
+        /// they are data (<see cref="ProcessOpSummary"/>), not exceptions crossing the layer boundary.
+        /// </remarks>
         private ProcessOpSummary ExecutePerPid(IEnumerable<int> selectedPids, Action<int> operation)
         {
             var succeeded = new List<int>();

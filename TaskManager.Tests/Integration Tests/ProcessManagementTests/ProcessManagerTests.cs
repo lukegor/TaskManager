@@ -97,17 +97,28 @@ namespace TaskManager.Tests
         }
 
         [Fact]
-        public async Task RemovedPid_EvictsEnrichmentCacheEntry()
+        public async Task RemovedPid_ReEnrichedOnReuse_EvictsCacheEntry()
         {
-            _enumerator.Queue(Snap(1));
-            await _manager.LoadProcesses();
-            _enumerator.Queue();
-            await _manager.PerformRefresh(isUserInitiated: false);
+            var enumerator = new ScriptedEnumerator();
+            var enricher = new CountingEnricher();
+            var manager = new ProcessManager(
+                _inlineDispatcher,
+                enumerator,
+                enricher,
+                _settings,
+                new TimerManager(_settings),
+                NullLogger<ProcessManager>.Instance);
 
-            _enumerator.Queue(Snap(1)); // same PID reused by another image
-            await _manager.PerformRefresh(isUserInitiated: false);
+            enumerator.Queue(Snap(7));
+            await manager.LoadProcesses();
 
-            _manager.Items.ShouldHaveSingleItem();
+            enumerator.Queue(); // PID 7 exits
+            await manager.PerformRefresh(isUserInitiated: false);
+
+            enumerator.Queue(Snap(7)); // PID 7 reused by another image
+            await manager.PerformRefresh(isUserInitiated: false);
+
+            enricher.Calls.ShouldBe(2); // second capture proves the cache entry was evicted, not replayed
         }
 
         // ---- reentrancy guard ----
@@ -350,6 +361,22 @@ namespace TaskManager.Tests
                 }
 
                 return _scripts.Dequeue()();
+            }
+        }
+
+        private sealed class CountingEnricher : ProcessEnricher
+        {
+            public int Calls { get; private set; }
+
+            public CountingEnricher() : base(NullLogger<ProcessEnricher>.Instance)
+            {
+            }
+
+            public override bool TryEnrich(int pid, out ProcessEnrichment enrichment)
+            {
+                Calls++;
+                enrichment = new ProcessEnrichment($@"C:\fake-{pid}-{Calls}.exe", ArchitectureType._64BIT);
+                return true;
             }
         }
     }
