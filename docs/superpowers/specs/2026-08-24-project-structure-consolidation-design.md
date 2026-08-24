@@ -41,7 +41,7 @@ Dependency graph after the change:
 
 ```
 TaskManager.IntegrationTests → TaskManager.Domain (+ app where needed)
-TaskManager.UnitTests        → TaskManager.Domain
+TaskManager.UnitTests        → TaskManager.Domain + TaskManager (exe; UI behavior/control tests)
 TaskManager (exe)            → TaskManager.Domain
 TaskManager.Domain           → BCL + NtApiDotNet + ClosedXML only
 ```
