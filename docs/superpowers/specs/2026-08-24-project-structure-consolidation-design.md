@@ -52,14 +52,16 @@ No project except the exe references WPF. `Shared` and `Utility` are deleted.
 
 | Source | Destination | Rationale |
 |---|---|---|
-| `Shared/Resources/Languages/*` (Strings.resx, Strings.pl.resx, Strings.Designer.cs) | `src/TaskManager/Resources/Localization/`, namespace `TaskManager.Resources.Languages` | App is sole consumer |
-| `Utility`: `ArchitectureType`, `DataType`, `OperationType`, `RefreshFrequencyType`, `ExportationType`, `EnumHelper`, `EnumExtensions`, `PriorityTypeHelper` | `TaskManager.Domain/Primitives/` | Domain vocabulary used by Domain models/services |
-| `Utility`: `IgnoreSerialization` | `TaskManager.Domain` (beside its consumers) | Used only by Domain Process/exporters |
-| `Utility`: `LanguageDictionary` | `src/TaskManager/Infrastructure/Settings/` | Settings/app concern |
-| `Utility`: `VisualTreeUtilityHelper` | `src/TaskManager/UI/` | WPF-only; only consumed by BetterDataGrid + GridColumnVisibility |
-| `Utility`: `Preconditions` | **Deleted** | Duplicates BCL (`ArgumentNullException.ThrowIfNull`, `ArgumentOutOfRangeException.ThrowIf*`); single call site |
+| `Shared/Resources/Languages/*` (Strings.resx, Strings.pl.resx, Strings.Designer.cs) | `src/TaskManager/Resources/Languages/`, namespace `TaskManager.Resources.Languages` | App is sole consumer |
+| `Utility`: `ArchitectureType`, `DataType`, `ExportationType`, `EnumExtensions`, `IgnoreSerialization`, `LanguageDictionary` | `TaskManager.Domain/Primitives/`, namespace `TaskManager.Domain.Primitives` | Domain vocabulary; consumed by Domain models/services |
+| `Utility`: `RefreshFrequencyType` enum + seconds mapping | `TaskManager.Domain/Primitives/` (static class `RefreshFrequencies`) | Pure logic consumed by Domain `TimerManager`/`ProcessManager` |
+| `Utility`: `PriorityTypeHelper.GetBasePriority` | `TaskManager.Domain/Primitives/ProcessBasePriority` | Pure mapping consumed by Domain `ProcessManager` |
+| `Utility`: localized string↔enum helpers (`PriorityTypeHelper`, `RefreshFrequencyTypeHelper`, `EnumHelper`) | `src/TaskManager/UI/Localization/`, namespace `TaskManager.UI.Localization` | Depend on localized `Strings`; consumed only by app |
+| `Utility`: `VisualTreeUtilityHelper` | `src/TaskManager/UI/Controls/`, namespace `TaskManager.UI.Controls` | WPF-only; kills `UseWPF` on libraries |
+| `Utility`: `Preconditions` (Flags enum) | `src/TaskManager/ViewModels/`, namespace `TaskManager.ViewModels` | Single consumer `MainWindowViewModel` |
+| `Utility`: `OperationType` | **Deleted** | Dead code — zero references outside its own declaration |
 
-All moved types get namespaces matching their new home. No `TaskManager.Utility` namespace survives.
+All moved types get namespaces matching their new home. No `TaskManager.Utility` or `TaskManager.Shared` namespace survives.
 
 ## Naming & Hygiene Fixes
 
@@ -84,8 +86,8 @@ The single shared helper (`TestSupport/GridTestHost.cs`) stays with unit tests; 
 ## Migration Order
 
 1. Create `src/` / `tests/` folders; move projects with `git mv`; update `TaskManager.slnx`.
-2. Dissolve `Shared`: move resx + Designer into app, update namespaces and consumers.
-3. Dissolve `Utility`: move each file per ownership table; delete `Preconditions`; update all usings.
+2. Dissolve `Utility`: move each file per ownership table; delete dead `OperationType`; update all usings.
+3. Dissolve `Shared`: move resx + Designer into app, update namespaces and consumers.
 4. Apply naming fixes (folders, namespaces, converters move).
 5. Split test project into UnitTests + IntegrationTests; fix csproj duplication.
 6. csproj/global.json/README polish.
