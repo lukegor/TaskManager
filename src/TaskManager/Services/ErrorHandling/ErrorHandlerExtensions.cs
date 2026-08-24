@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using TaskManager.Domain.Abstractions;
 
 namespace TaskManager.Services.ErrorHandling
 {
