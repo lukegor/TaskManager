@@ -1,7 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Win32;
 
-namespace TaskManager.Domain.Services.Utility
+namespace TaskManager.Services
 {
 	public class FolderSelector : ObservableObject
 	{

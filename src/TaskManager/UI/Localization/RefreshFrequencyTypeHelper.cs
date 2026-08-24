@@ -1,4 +1,4 @@
-using TaskManager.Shared.Resources.Languages;
+using TaskManager.Resources.Languages;
 using TaskManager.Domain.Primitives;
 
 namespace TaskManager.UI.Localization

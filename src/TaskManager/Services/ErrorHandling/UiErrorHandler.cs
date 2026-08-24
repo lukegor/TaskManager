@@ -2,7 +2,8 @@ using System.Reflection;
 using System.Windows;
 using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
-using TaskManager.Shared.Resources.Languages;
+using TaskManager.Abstractions;
+using TaskManager.Resources.Languages;
 
 namespace TaskManager.Services.ErrorHandling
 {

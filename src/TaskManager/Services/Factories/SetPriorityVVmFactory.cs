@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Domain.Abstractions;
+using TaskManager.Abstractions;
 using TaskManager.Domain.Services;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.UI.Views;

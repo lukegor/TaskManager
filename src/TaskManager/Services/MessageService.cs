@@ -1,5 +1,6 @@
 using System.Windows;
 using TaskManager.Domain.Abstractions;
+using TaskManager.Abstractions;
 
 namespace TaskManager.Services
 {

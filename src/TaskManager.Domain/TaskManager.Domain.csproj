@@ -8,11 +8,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="TaskManager.UnitTests"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\TaskManager.Shared\TaskManager.Shared.csproj" />
+    <InternalsVisibleTo Include="TaskManager.UnitTests" />
   </ItemGroup>
 
 </Project>

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
+using TaskManager.Abstractions;
 using TaskManager.Services.ErrorHandling;
 
 namespace TaskManager.Tests

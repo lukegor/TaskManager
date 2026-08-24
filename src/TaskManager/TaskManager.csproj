@@ -27,13 +27,12 @@
   </ItemGroup>
 
   <ItemGroup>
-	<InternalsVisibleTo Include="TaskManager.UnitTests"/>
-	<InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
+	<InternalsVisibleTo Include="TaskManager.UnitTests" />
+	<InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\TaskManager.Domain\TaskManager.Domain.csproj" />
-    <ProjectReference Include="..\TaskManager.Shared\TaskManager.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,7 +46,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Resources\Strings.Designer.cs">
+    <Compile Update="Resources\Languages\Strings.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Strings.resx</DependentUpon>
@@ -55,7 +54,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Resources\Strings.resx">
+    <EmbeddedResource Update="Resources\Languages\Strings.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <LastGenOutput>Strings.Designer.cs</LastGenOutput>
     </EmbeddedResource>

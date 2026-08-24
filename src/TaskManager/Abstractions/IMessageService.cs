@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace TaskManager.Domain.Abstractions
+namespace TaskManager.Abstractions
 {
     public interface IMessageService
     {

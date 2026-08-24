@@ -1,4 +1,4 @@
-﻿<Window x:Class="TaskManager.UI.Views.DataExportWindow"
+<Window x:Class="TaskManager.UI.Views.DataExportWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TaskManager.UI.Views"
         d:DataContext="{d:DesignInstance Type=viewModels:DataExportWindowViewModel}"
         xmlns:viewModels="clr-namespace:TaskManager.ViewModels"
-        xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
+        xmlns:resx="clr-namespace:TaskManager.Resources.Languages"
 		mc:Ignorable="d"
         Title="DataExportWindow" Height="200" Width="400"
         ResizeMode="CanMinimize">

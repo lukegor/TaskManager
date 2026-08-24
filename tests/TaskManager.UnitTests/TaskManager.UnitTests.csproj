@@ -29,7 +29,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TaskManager\TaskManager.csproj" />
     <ProjectReference Include="..\..\src\TaskManager.Domain\TaskManager.Domain.csproj" />
-    <ProjectReference Include="..\..\src\TaskManager.Shared\TaskManager.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

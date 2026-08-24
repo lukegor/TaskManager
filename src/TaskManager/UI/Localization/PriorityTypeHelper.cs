@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using TaskManager.Shared.Resources.Languages;
+using TaskManager.Resources.Languages;
 
 namespace TaskManager.UI.Localization
 {
