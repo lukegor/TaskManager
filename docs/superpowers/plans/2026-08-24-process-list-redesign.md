@@ -8,6 +8,18 @@
 
 **Tech Stack:** .NET 10 (net10.0-windows), WPF, C# 14 field-backed properties, NtApiDotNet 1.1.33, xunit.v3 + Shouldly + NSubstitute, central package management.
 
+## As-built corrections (execution record)
+
+The tasks below were executed with these deviations, each verified by two-stage review:
+
+- **Test-runner syntax:** this repo runs xunit.v3 under Microsoft.Testing.Platform; VSTest-style `--filter` is unsupported. Filtered runs use `dotnet run --project TaskManager.Tests --no-build -- -class "<FQCN>"` (commands below already corrected).
+- **Count wiring (Task 5):** subscribes `_items.CollectionChanged` directly — the read-only wrapper exposes `INotifyCollectionChanged` only explicitly; events are identical.
+- **Polling startup (Task 5):** `StartPollingProcesses()` retained on `ProcessManager` and called from the ViewModel constructor as before; the rewrite initially dropped it, which would have left polling never started.
+- **Enrichment outside the lock (Task 5, quality loop):** per-PID `TryEnrich` probes run unlocked; `lock (_index)` covers only the cache probe/publish split.
+- **Manual refresh error surface (Task 5, quality loop):** `RefreshCommand` wrapped in `IErrorHandler.GuardAsync`, per spec's "manual refresh surfaces errors" requirement.
+- **Enricher faking (Task 5, quality loop):** `ProcessEnricher` unsealed with `virtual TryEnrich`; eviction test uses a counting fake asserting re-enrichment after PID exit/reuse.
+- **Export wiring (Task 6):** `DataExportViewModelFactory.Create` tightened to `IReadOnlyList<Process>` (plan claimed unchanged would compile — inverted); export VM stores a defensive `ToArray()` copy so the dialog owns its data.
+
 ## Global Constraints
 
 - Spec: `docs/superpowers/specs/2026-08-24-process-list-redesign-design.md`.
@@ -174,7 +186,7 @@ namespace TaskManager.Tests
 
 ```bash
 dotnet build TaskManager.slnx
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~NtSystemProcessEnumeratorTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.NtSystemProcessEnumeratorTests"
 ```
 
 - [ ] **Step 6: Commit**
@@ -380,9 +392,9 @@ namespace TaskManager.Tests
 
 ```bash
 dotnet build TaskManager.slnx
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~ProcessObservableTests"
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~ProcessItemTests"
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~BaseDataExporterTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.Models.ProcessObservableTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.Models.ProcessItemTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.BaseDataExporterTests"
 ```
 
 (`ProcessItemTests` and exporter tests guard the unchanged serialized/delimited behavior.)
@@ -572,7 +584,7 @@ namespace TaskManager.Tests
 
 ```bash
 dotnet build TaskManager.slnx
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~ProcessDiffEngineTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.ProcessPipeline.ProcessDiffEngineTests"
 ```
 
 - [ ] **Step 4: Commit**
@@ -725,7 +737,7 @@ namespace TaskManager.Tests
 
 ```bash
 dotnet build TaskManager.slnx
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~ProcessEnricherTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.ProcessEnricherTests"
 ```
 
 - [ ] **Step 4: Commit**
@@ -1546,8 +1558,8 @@ Also delete the now-obsolete `GivenTrackedProcess` helper (replaced by enumerato
 
 ```bash
 dotnet build TaskManager.slnx
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~ProcessManagerTests"
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~Viewmodels"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.ProcessManagerTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.DataExportWindowViewModelTests" -class "TaskManager.Tests.SettingsWindowViewModelTests" -class "TaskManager.Tests.ViewViewmodelTests"
 dotnet test TaskManager.Tests
 ```
 
@@ -1662,7 +1674,7 @@ In `TaskManager.Tests/Viewmodels/DataExportWindowViewModelTests.cs`, add this te
 
 ```bash
 dotnet build TaskManager.slnx
-dotnet test TaskManager.Tests --filter "FullyQualifiedName~DataExportWindowViewModelTests"
+dotnet run --project TaskManager.Tests --no-build -- -class "TaskManager.Tests.DataExportWindowViewModelTests"
 dotnet test TaskManager.Tests
 ```
 
