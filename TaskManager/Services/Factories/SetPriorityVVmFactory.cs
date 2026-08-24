@@ -16,7 +16,7 @@ namespace TaskManager.Services.Factories
             _serviceProvider = serviceProvider;
         }
 
-        public SetPriorityWindow Create(IEnumerable<int> processes)
+        public SetPriorityWindow Create(IReadOnlyCollection<int> processes)
         {
             SetPriorityWindow setPriorityWindow = new SetPriorityWindow();
 

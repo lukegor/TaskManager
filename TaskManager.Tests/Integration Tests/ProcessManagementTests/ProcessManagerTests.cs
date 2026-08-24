@@ -11,19 +11,21 @@ using ProcessPriorityClass = System.Diagnostics.ProcessPriorityClass;
 namespace TaskManager.Tests
 {
     /// <summary>
-    /// Behavior contract of ProcessManager batch operations:
-    /// every selected PID gets its real OS operation applied, expected failures are
-    /// reported as data without aborting the batch, and the matching tracked
-    /// ProcessItem gets its displayed base-priority value updated.
-    /// The test process itself is used as the safely mutable target.
+    /// Behavior contract of ProcessManager: snapshot-driven refresh batches (add/update/remove,
+    /// in-place instance reuse), reentrancy guards, batch ops reporting failures as data, and
+    /// materialized export snapshots immune to later store changes.
+    /// A scripted enumerator drives the pipeline; the real OS process is used as the safely
+    /// mutable target for batch operations.
     /// </summary>
     public class ProcessManagerTests : IDisposable
     {
+        private readonly ScriptedEnumerator _enumerator = new();
         private readonly ProcessManager _manager;
         private readonly ISettingsService _settings;
         private readonly TimerManager _timer;
         private readonly WinProcess _self = WinProcess.GetCurrentProcess();
         private readonly ProcessPriorityClass _originalPriority;
+        private readonly IDispatcherService _inlineDispatcher;
 
         public ProcessManagerTests()
         {
@@ -35,31 +37,134 @@ namespace TaskManager.Tests
                 DateTimeFormat = AppSettings.Defaults.DateTimeFormat
             });
 
+            _inlineDispatcher = Substitute.For<IDispatcherService>();
+            _inlineDispatcher.When(d => d.Invoke(Arg.Any<Action>()))
+                .Do(ci => ((Action)ci[0])());
+
             _timer = new TimerManager(_settings);
             _manager = new ProcessManager(
-                Substitute.For<IDispatcherService>(),
+                _inlineDispatcher,
+                _enumerator,
+                new ProcessEnricher(NullLogger<ProcessEnricher>.Instance),
                 _settings,
                 _timer,
                 NullLogger<ProcessManager>.Instance);
             _originalPriority = _self.PriorityClass;
         }
 
-        public void Dispose()
+        public void Dispose() => _self.PriorityClass = _originalPriority;
+
+        // ---- refresh pipeline ----
+
+        [Fact]
+        public async Task FirstRefresh_AddsEverythingFromSnapshot()
         {
-            _self.PriorityClass = _originalPriority;
+            _enumerator.Queue(Snap(1, "alpha"), Snap(2, "beta"));
+
+            await _manager.LoadProcesses();
+
+            _manager.Items.Select(i => i.Process.Pid).ShouldBe(new int?[] { 1, 2 });
+            _manager.ProcessCount.ShouldBe(2);
         }
 
         [Fact]
-        public void SetPriority_UpdatesRealProcessAndStoredModel()
+        public async Task SecondRefresh_UpdatesExistingInstance_InPlace_AndRaisesFieldNotification()
         {
-            var item = GivenTrackedProcess(_self.Id);
+            _enumerator.Queue(Snap(1, "alpha", threadCount: 3));
+            await _manager.LoadProcesses();
+            var original = _manager.Items.Single();
+            var notified = new List<string>();
+            original.Process.PropertyChanged += (_, e) => notified.Add(e.PropertyName!);
 
-            _manager.SetPriority(new[] { _self.Id }, ProcessPriorityClass.AboveNormal);
+            _enumerator.Queue(Snap(1, "alpha", threadCount: 7));
+            await _manager.PerformRefresh(isUserInitiated: false);
 
-            _self.Refresh();
-            _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
-            item.Process.Priority.ShouldBe(10); // AboveNormal => base priority 10
+            _manager.Items.ShouldHaveSingleItem().ShouldBe(original); // same instance -> selection survives
+            original.Process.ThreadCount.ShouldBe(7);
+            notified.ShouldContain(nameof(Process.ThreadCount));
         }
+
+        [Fact]
+        public async Task SecondRefresh_RemovesVanished_AndAddsNew()
+        {
+            _enumerator.Queue(Snap(1), Snap(2));
+            await _manager.LoadProcesses();
+
+            _enumerator.Queue(Snap(2), Snap(3));
+            await _manager.PerformRefresh(isUserInitiated: false);
+
+            _manager.Items.Select(i => i.Process.Pid).ShouldBe(new int?[] { 2, 3 });
+        }
+
+        [Fact]
+        public async Task RemovedPid_EvictsEnrichmentCacheEntry()
+        {
+            _enumerator.Queue(Snap(1));
+            await _manager.LoadProcesses();
+            _enumerator.Queue();
+            await _manager.PerformRefresh(isUserInitiated: false);
+
+            _enumerator.Queue(Snap(1)); // same PID reused by another image
+            await _manager.PerformRefresh(isUserInitiated: false);
+
+            _manager.Items.ShouldHaveSingleItem();
+        }
+
+        // ---- reentrancy guard ----
+
+        [Fact]
+        public async Task OverlappingPollingRefresh_SecondCallSkips_FirstCompletes()
+        {
+            var releaseFirst = new TaskCompletionSource();
+            _enumerator.Queue(() => releaseFirst.Task.ContinueWith(_ => Array.Empty<ProcessSnapshot>()).Result);
+            _enumerator.Queue(Array.Empty<ProcessSnapshot>);
+
+            var first = _manager.SafePollingRefreshAsync();
+            var second = _manager.SafePollingRefreshAsync(); // must not queue behind, must skip
+
+            releaseFirst.SetResult();
+            await first;
+            second.IsCompleted.ShouldBeTrue();
+            _enumerator.CallCount.ShouldBe(1); // skipped tick never captured
+        }
+
+        [Fact]
+        public async Task ManualRefresh_WaitsForInFlight_ToFinish()
+        {
+            var releaseFirst = new TaskCompletionSource();
+            _enumerator.Queue(() => releaseFirst.Task.ContinueWith(_ => Array.Empty<ProcessSnapshot>()).Result);
+            _enumerator.Queue(Snap(1));
+
+            var first = _manager.SafePollingRefreshAsync();
+            var manual = _manager.PerformRefresh(isUserInitiated: true);
+
+            manual.IsCompleted.ShouldBeFalse();
+            releaseFirst.SetResult();
+            await manual;
+
+            _enumerator.CallCount.ShouldBe(2);
+            _manager.ProcessCount.ShouldBe(1);
+        }
+
+        // ---- export snapshot ----
+
+        [Fact]
+        public async Task ExportSnapshot_IsImmuneToLaterStoreChanges()
+        {
+            _enumerator.Queue(Snap(1, "one"), Snap(2, "two"));
+            await _manager.LoadProcesses();
+
+            var snapshot = _manager.SnapshotForExport();
+
+            _enumerator.Queue();
+            await _manager.PerformRefresh(isUserInitiated: false); // everything exits
+
+            _manager.Items.ShouldBeEmpty();
+            snapshot.Count.ShouldBe(2);
+            snapshot.Single(p => p.Pid == 1).Name.ShouldBe("one");
+        }
+
+        // ---- batch operations (existing contracts preserved) ----
 
         [Fact]
         public void SettingsChanged_AppliesNewPollingIntervalImmediately()
@@ -76,21 +181,35 @@ namespace TaskManager.Tests
         }
 
         [Fact]
-        public void SetPriority_StalePid_DoesNotAbortRemainingUpdates()
+        public async Task SetPriority_UpdatesRealProcessAndStoredModel()
+        {
+            _enumerator.Queue(SelfSnap());
+            await _manager.LoadProcesses();
+
+            _manager.SetPriority(new[] { _self.Id }, ProcessPriorityClass.AboveNormal);
+
+            _self.Refresh();
+            _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
+            _manager.Items.Single().Process.Priority.ShouldBe(10); // AboveNormal => base priority 10
+        }
+
+        [Fact]
+        public async Task SetPriority_StalePid_DoesNotAbortRemainingUpdates()
         {
             int stalePid = GetUnusedPid();
-            var item = GivenTrackedProcess(_self.Id);
+            _enumerator.Queue(SelfSnap());
+            await _manager.LoadProcesses();
 
             // a process can die between selection and confirmation; the rest of the batch must survive it
             _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.BelowNormal);
 
             _self.Refresh();
             _self.PriorityClass.ShouldBe(ProcessPriorityClass.BelowNormal);
-            item.Process.Priority.ShouldBe(6); // BelowNormal => base priority 6
+            _manager.Items.Single().Process.Priority.ShouldBe(6); // BelowNormal => base priority 6
         }
 
         [Fact]
-        public void SetPriority_StalePid_IsReportedInSummary()
+        public async Task SetPriority_StalePid_IsReportedInSummary()
         {
             int stalePid = GetUnusedPid();
 
@@ -103,9 +222,11 @@ namespace TaskManager.Tests
         }
 
         [Fact]
-        public void SetPriority_MixedBatch_ReportsBothOutcomesAndSurvives()
+        public async Task SetPriority_MixedBatch_ReportsBothOutcomesAndSurvives()
         {
             int stalePid = GetUnusedPid();
+            _enumerator.Queue(SelfSnap());
+            await _manager.LoadProcesses();
 
             var summary = _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.AboveNormal);
 
@@ -116,8 +237,10 @@ namespace TaskManager.Tests
         }
 
         [Fact]
-        public void TerminateProcesses_KillsTarget_AndReportsStalePidWithoutAborting()
+        public async Task TerminateProcesses_KillsTarget_AndReportsStalePidWithoutAborting()
         {
+            _enumerator.Queue(SelfSnap());
+            await _manager.LoadProcesses();
             using var victim = WinProcess.Start(new WinProcessStartInfo
             {
                 FileName = "cmd.exe",
@@ -148,25 +271,6 @@ namespace TaskManager.Tests
         }
 
         [Fact]
-        public async Task LoadProcesses_PopulatesCollectionThroughDispatcher()
-        {
-            var dispatcher = Substitute.For<IDispatcherService>();
-            // execute inline like the real UI dispatcher would
-            dispatcher.When(d => d.Invoke(Arg.Any<Action>()))
-                .Do(ci => ((Action)ci[0])());
-            var manager = new ProcessManager(
-                dispatcher,
-                _settings,
-                new TimerManager(_settings),
-                NullLogger<ProcessManager>.Instance);
-
-            await manager.LoadProcesses();
-
-            manager.Processes.ShouldNotBeEmpty();
-            dispatcher.Received().Invoke(Arg.Any<Action>());
-        }
-
-        [Fact]
         public async Task SafePollingRefreshAsync_SwallowsAndLogsUnexpectedFailures()
         {
             var throwingDispatcher = Substitute.For<IDispatcherService>();
@@ -175,21 +279,32 @@ namespace TaskManager.Tests
                 .Do(_ => throw new InvalidOperationException("dispatcher died"));
             var failingManager = new ProcessManager(
                 throwingDispatcher,
+                ScriptedEnumerator.Of(SelfSnap()),
+                new ProcessEnricher(NullLogger<ProcessEnricher>.Instance),
                 _settings,
                 new TimerManager(_settings),
                 NullLogger<ProcessManager>.Instance);
-            failingManager.Processes.Add(
-                new ProcessItem(new Process { Name = "ghost", Pid = GetUnusedPid(), Path = string.Empty }));
 
             await failingManager.SafePollingRefreshAsync();
         }
 
-        private ProcessItem GivenTrackedProcess(int pid)
+        [Fact]
+        public async Task EnumeratorFailure_IsSwallowedByPollingWrapper()
         {
-            var item = new ProcessItem(new Process { Name = "self", Pid = pid, Path = string.Empty });
-            _manager.Processes.Add(item);
-            return item;
+            _enumerator.ThrowNext(new InvalidOperationException("snapshot boom"));
+
+            await _manager.SafePollingRefreshAsync();
+
+            _manager.Items.ShouldBeEmpty();
         }
+
+        // ---- helpers ----
+
+        private static ProcessSnapshot SelfSnap() =>
+            new(Environment.ProcessId, "self", ThreadCount: 1, Ppid: null, BasePriority: 8);
+
+        private static ProcessSnapshot Snap(int pid, string name = "n", int threadCount = 1) =>
+            new(pid, name, ThreadCount: threadCount, Ppid: 4, BasePriority: 8);
 
         private static int GetUnusedPid()
         {
@@ -204,7 +319,38 @@ namespace TaskManager.Tests
 
             throw new InvalidOperationException("Could not find an unused PID.");
         }
+
+        private sealed class ScriptedEnumerator : ISystemProcessEnumerator
+        {
+            private readonly Queue<Func<IReadOnlyList<ProcessSnapshot>>> _scripts = new();
+            public int CallCount { get; private set; }
+            private Exception? _throwOnce;
+
+            public static ScriptedEnumerator Of(params ProcessSnapshot[] items)
+            {
+                var e = new ScriptedEnumerator();
+                e.Queue(items);
+                return e;
+            }
+
+            public void Queue(params ProcessSnapshot[] items) => Queue(() => items);
+
+            public void Queue(Func<IReadOnlyList<ProcessSnapshot>> script) => _scripts.Enqueue(script);
+
+            public void ThrowNext(Exception ex) => _throwOnce = ex;
+
+            public IReadOnlyList<ProcessSnapshot> Capture()
+            {
+                CallCount++;
+                if (_throwOnce is not null)
+                {
+                    var ex = _throwOnce;
+                    _throwOnce = null;
+                    throw ex;
+                }
+
+                return _scripts.Dequeue()();
+            }
+        }
     }
 }
-
-

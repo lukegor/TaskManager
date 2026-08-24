@@ -28,10 +28,10 @@ namespace TaskManager.ViewModels
         private readonly ProcessManager _processManager;
         private readonly IErrorHandler _errorHandler;
 
-        private readonly IEnumerable<int> _processIds;
+        private readonly IReadOnlyCollection<int> _processIds;
 
         public SetPriorityWindowViewModel(IMessageService messageService, ProcessManager processManager,
-            IEnumerable<int> processes, IErrorHandler errorHandler)
+            IReadOnlyCollection<int> processes, IErrorHandler errorHandler)
         {
             _messageService = messageService;
             _processManager = processManager;

@@ -77,7 +77,7 @@
 		<DockPanel Grid.Row="2">
 			<TabControl SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
                 <TabItem Header="{x:Static resx:Strings.Processes}">
-					<controls:BetterDataGrid IsReadOnly="True" AutoGenerateColumns="False" ItemsSource="{Binding Processes, Mode=TwoWay}" Margin="-5,0,0,0"
+					<controls:BetterDataGrid IsReadOnly="True" AutoGenerateColumns="False" ItemsSource="{Binding Processes}" Margin="-5,0,0,0"
 					                         b:GridColumnVisibility.IsEnabled="True">
 						<controls:BetterDataGrid.RowFormatter>
 							<fmt:ProcessRowFormatter/>

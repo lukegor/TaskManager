@@ -1,46 +1,66 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.Extensions.Logging;
-using NtApiDotNet;
+﻿using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.ComponentModel;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Utility.Utility;
 
 namespace TaskManager.Domain.Services
 {
-    public class ProcessManager : ObservableObject
+    /// <summary>
+    /// Single source of truth for the running-process list.
+    /// Storage: ObservableCollection wrapped read-only + PID index + once-per-PID enrichment cache.
+    /// Pipeline per tick: cheap snapshot → off-thread diff/enrich → ONE dispatcher batch applying
+    /// removes/adds/in-place updates.
+    /// </summary>
+    public class ProcessManager : INotifyPropertyChanged
     {
-        public ObservableCollection<ProcessItem> Processes { get; set => SetProperty(ref field, value); } = new();
+        private readonly ObservableCollection<ProcessItem> _items = [];
+        private readonly Dictionary<int, ProcessItem> _index = [];
+        private readonly Dictionary<int, ProcessEnrichment> _enrichment = [];
+        private readonly SemaphoreSlim _refreshGate = new(1, 1);
 
-        /// <summary>The getter reports the live collection count; the setter exists only to raise PropertyChanged.</summary>
+        public ReadOnlyObservableCollection<ProcessItem> Items { get; }
+
+        private int _processCount;
         public int ProcessCount
         {
-            get => Processes.Count;
-            set => OnPropertyChanged();
+            get => _processCount;
+            private set
+            {
+                if (_processCount != value)
+                {
+                    _processCount = value;
+                    OnPropertyChanged();
+                }
+            }
         }
 
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         private readonly IDispatcherService _dispatcher;
+        private readonly ISystemProcessEnumerator _enumerator;
+        private readonly ProcessEnricher _enricher;
         private readonly ISettingsService _settings;
         private readonly TimerManager _timer;
         private readonly ILogger<ProcessManager> _logger;
 
-        public ProcessManager(IDispatcherService dispatcher, ISettingsService settings, TimerManager timerManager,
+        public ProcessManager(IDispatcherService dispatcher, ISystemProcessEnumerator enumerator,
+            ProcessEnricher enricher, ISettingsService settings, TimerManager timerManager,
             ILogger<ProcessManager> logger)
         {
             _dispatcher = dispatcher;
+            _enumerator = enumerator;
+            _enricher = enricher;
             _settings = settings;
             _timer = timerManager;
             _logger = logger;
 
-            Processes.CollectionChanged += Processes_CollectionChanged;
+            Items = new ReadOnlyObservableCollection<ProcessItem>(_items);
+            _items.CollectionChanged += (_, _) => ProcessCount = _items.Count;
 
             _timer.Elapsed += OnProcessPolling;
-
-            // Live-apply refresh-frequency changes; the event is declared on the
-            // interface, so this wiring is compiler-enforced.
             _settings.Changed += OnSettingsChanged;
         }
 
@@ -51,60 +71,11 @@ namespace TaskManager.Domain.Services
             _logger.LogInformation("Polling interval updated to {Seconds}s", seconds);
         }
 
-        public void Processes_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
-        {
-            ProcessCount = Processes.Count;
-            OnPropertyChanged(nameof(Processes));
-        }
-
-        /// <summary>
-        /// Enumerates all processes off-thread, then populates the collection in one UI-thread batch.
-        /// </summary>
-        /// <remarks>
-        /// The enumeration must be materialized (<c>ToList</c>) on the worker thread: <see cref="GetProcesses"/>
-        /// is a lazy iterator, so handing it to <see cref="Task.Run"/> directly would run the expensive
-        /// enumeration inside the consumer loop instead. Adds are marshalled through the dispatcher because
-        /// the collection is bound to the UI; cross-thread collection changes never reach the grid.
-        /// </remarks>
-        public async Task LoadProcesses()
-        {
-            var processList = await Task.Run(() => GetProcesses().ToList()).ConfigureAwait(false);
-
-            _dispatcher.Invoke(() =>
-            {
-                foreach (var process in processList)
-                {
-                    Processes.Add(new ProcessItem(process));
-                }
-            });
-        }
-
-        public void StartPollingProcesses()
-        {
-            _timer.Start();
-        }
-
-        private async void OnProcessPolling(object? sender, System.Timers.ElapsedEventArgs e)
-        {
-            await SafePollingRefreshAsync();
-        }
-
-        internal async Task SafePollingRefreshAsync()
-        {
-            try
-            {
-                await PerformRefresh(isUserInitiated: false);
-            }
-            catch (Exception ex)
-            {
-                // async void callback: an escaping exception would terminate the process
-                _logger.LogWarning(ex, "Polling refresh failed");
-            }
-        }
+        public async Task LoadProcesses() => await RunRefreshAsync(manual: false);
 
         public async Task PerformRefresh(bool isUserInitiated)
         {
-            await Refresh();
+            await RunRefreshAsync(manual: isUserInitiated);
 
             if (isUserInitiated)
             {
@@ -112,41 +83,170 @@ namespace TaskManager.Domain.Services
             }
         }
 
-        private async Task Refresh()
+        private async void OnProcessPolling(object? sender, System.Timers.ElapsedEventArgs e)
         {
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now}] REFRESHING processes");
-            List<Process> actualProcesses = await Task.Run(() => GetProcesses().ToList());
+            await SafePollingRefreshAsync();
+        }
 
-            List<ProcessItem> deletedProcesses = Processes
-                .Where(existingProcess => !actualProcesses.Any(p => p.Pid == existingProcess.Process.Pid))
-                .ToList();
-
-            foreach (var process in deletedProcesses)
+        /// <remarks>
+        /// async void callback boundary: an escaping exception would terminate the process.
+        /// Polling skips a tick when a refresh is already in flight; manual refresh waits.
+        /// </remarks>
+        internal async Task SafePollingRefreshAsync()
+        {
+            if (!_refreshGate.Wait(0))
             {
-                _dispatcher.Invoke(() =>
-                    Processes.Remove(process)
-                );
+                _logger.LogDebug("Refresh skipped; previous refresh still in flight");
+                return;
             }
 
-            foreach (var newProcess in actualProcesses)
+            try
             {
-                if (!Processes.Any(p => p.Process.Pid == newProcess.Pid))
-                {
-                    try
-                    {
-                        _dispatcher.Invoke(() =>
-                            Processes.Add(new ProcessItem(newProcess))
-                        );
-                    }
-                    catch (TaskCanceledException)
-                    {
-                        System.Diagnostics.Debug.WriteLine("Polling update task cancelled");
-                    }
-                }
+                await RunRefreshCoreAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Polling refresh failed");
+            }
+            finally
+            {
+                _refreshGate.Release();
             }
         }
 
-        public ProcessOpSummary TerminateProcesses(IEnumerable<int> selectedProcesses)
+        private async Task RunRefreshAsync(bool manual)
+        {
+            if (manual)
+            {
+                await _refreshGate.WaitAsync().ConfigureAwait(false);
+                try
+                {
+                    await RunRefreshCoreAsync().ConfigureAwait(false);
+                }
+                finally
+                {
+                    _refreshGate.Release();
+                }
+            }
+            else
+            {
+                await SafePollingRefreshAsync();
+            }
+        }
+
+        private async Task RunRefreshCoreAsync()
+        {
+            IReadOnlyList<ProcessSnapshot> snapshot = await Task.Run(() => _enumerator.Capture()).ConfigureAwait(false);
+
+            Dictionary<int, Process> current;
+            lock (_index)
+            {
+                current = _index.ToDictionary(kv => kv.Key, kv => kv.Value.Process);
+            }
+
+            PipelineBatch batch = await Task.Run(() =>
+            {
+                var diff = ProcessDiffEngine.Compute(current, snapshot);
+                var enrichments = new Dictionary<int, ProcessEnrichment>();
+                lock (_index)
+                {
+                    foreach (var added in diff.Added)
+                    {
+                        if (!_enrichment.TryGetValue(added.Pid, out var e) && !_enricher.TryEnrich(added.Pid, out e))
+                        {
+                            e = new ProcessEnrichment(string.Empty, ArchitectureType.Unknown);
+                        }
+                        enrichments[added.Pid] = e;
+                    }
+                }
+
+                return new PipelineBatch(diff, enrichments);
+            }).ConfigureAwait(false);
+
+            ApplyBatch(batch.Batch, batch.Enrichments);
+        }
+
+        private readonly record struct PipelineBatch(ProcessListDiff Batch, Dictionary<int, ProcessEnrichment> Enrichments);
+
+        /// <summary>
+        /// The ONLY mutation point of _items/_index/_enrichment. Runs on the UI thread.
+        /// Worker threads read _index/_enrichment under lock(_index); _items is touched by
+        /// no thread except the UI thread.
+        /// </summary>
+        private void ApplyBatch(ProcessListDiff diff, Dictionary<int, ProcessEnrichment> enrichedNew)
+        {
+            _dispatcher.Invoke(() =>
+            {
+                lock (_index)
+                {
+                    foreach (var pid in diff.Removed)
+                    {
+                        if (_index.Remove(pid, out var item))
+                        {
+                            _items.Remove(item);
+                            _enrichment.Remove(pid);
+                        }
+                    }
+
+                    foreach (var added in diff.Added)
+                    {
+                        var process = Materialize(added, enrichedNew[added.Pid]);
+                        _enrichment[added.Pid] = enrichedNew[added.Pid];
+                        var item = new ProcessItem(process);
+                        _index[added.Pid] = item;
+                        _items.Add(item);
+                    }
+
+                    foreach (var upd in diff.Updated)
+                    {
+                        if (_index.TryGetValue(upd.Pid, out var item))
+                        {
+                            ApplySnapshot(item.Process, upd);
+                        }
+                    }
+                }
+            });
+        }
+
+        private static Process Materialize(ProcessSnapshot s, ProcessEnrichment e) => new()
+        {
+            Name = s.Name,
+            Pid = s.Pid,
+            Path = e.Path,
+            ArchitectureType = e.Architecture,
+            Priority = s.BasePriority,
+            ThreadCount = s.ThreadCount,
+            Ppid = s.Ppid,
+        };
+
+        private static void ApplySnapshot(Process target, ProcessSnapshot s)
+        {
+            target.Name = s.Name;
+            target.ThreadCount = s.ThreadCount;
+            target.Priority = s.BasePriority;
+            target.Ppid = s.Ppid;
+        }
+
+        public IReadOnlyList<Process> SnapshotForExport()
+        {
+            lock (_index)
+            {
+                return _index.Values.Select(i => CopyOf(i.Process)).ToList();
+            }
+        }
+
+        private static Process CopyOf(Process p) => new()
+        {
+            Name = p.Name,
+            Pid = p.Pid,
+            Path = p.Path,
+            ArchitectureType = p.ArchitectureType,
+            Priority = p.Priority,
+            ThreadCount = p.ThreadCount,
+            Ppid = p.Ppid,
+        };
+
+        public ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> selectedProcesses)
         {
             return ExecutePerPid(selectedProcesses, pid =>
             {
@@ -156,7 +256,7 @@ namespace TaskManager.Domain.Services
             });
         }
 
-        public ProcessOpSummary SetPriority(IEnumerable<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
+        public ProcessOpSummary SetPriority(IReadOnlyCollection<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
         {
             var summary = ExecutePerPid(selectedProcesses, pid =>
             {
@@ -166,17 +266,18 @@ namespace TaskManager.Domain.Services
 
             foreach (var pid in summary.SucceededPids)
             {
-                var storedItem = Processes.FirstOrDefault(p => p.Process.Pid == pid);
-                storedItem?.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
+                lock (_index)
+                {
+                    if (_index.TryGetValue(pid, out var item))
+                    {
+                        item.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
+                    }
+                }
             }
 
             return summary;
         }
 
-        /// <remarks>
-        /// Expected OS-level rejections are recorded per PID and never abort the batch;
-        /// they are data (<see cref="ProcessOpSummary"/>), not exceptions crossing the layer boundary.
-        /// </remarks>
         private ProcessOpSummary ExecutePerPid(IEnumerable<int> selectedPids, Action<int> operation)
         {
             var succeeded = new List<int>();
@@ -210,69 +311,7 @@ namespace TaskManager.Domain.Services
             _ => ProcessOpFailureReason.Unknown
         };
 
-        /// <summary>
-        ///
-        /// </summary>
-        /// <returns></returns>
-        /// <remarks>
-        /// In order to get some processes, it requires Admin privileges and in some cases, even this isn't enough
-        /// TO-DO: change processInfo retrieving method so that it returns ALL processes
-        /// </remarks>
-        private IEnumerable<Process> GetProcesses()
-        {
-            var allProcesses = System.Diagnostics.Process.GetProcesses();
-
-            foreach (var process in allProcesses)
-            {
-                Process processInfo;
-                try
-                {
-                    bool? result = null;
-                    if (TryGetProcessBitness(process.Handle, out bool is32Bit))
-                    {
-                        result = is32Bit;
-                    }
-
-                    using (var ntProcess = NtProcess.FromHandle(process.Handle))
-                    {
-                        processInfo = new Process
-                        {
-                            Name = process.ProcessName,
-                            Pid = process.Id,
-                            Path = process.MainModule?.FileName ?? string.Empty,
-                            ArchitectureType = result switch
-                            {
-                                true => ArchitectureType._32BIT,
-                                false => ArchitectureType._64BIT,
-                                null => ArchitectureType.Unknown
-                            },
-                            Priority = process.BasePriority,
-                            ThreadCount = process.Threads.Count,
-                            Ppid = ntProcess.ParentProcessId,
-                        };
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogDebug(ex, "Skipped inaccessible process during enumeration");
-                    continue;
-                }
-                yield return processInfo;
-            }
-        }
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool IsWow64Process(nint hProcess, out bool wow64Process);
-
-        private static bool TryGetProcessBitness(nint processHandle, out bool is32Bit)
-        {
-            if (IsWow64Process(processHandle, out is32Bit)) { return true; }
-            else
-            {
-                int errorCode = Marshal.GetLastWin32Error();
-                System.Diagnostics.Debug.WriteLine($"IsWow64Process failed to determine pId bitness.\nError code: {errorCode}");
-                return false;
-            }
-        }
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }
