@@ -176,14 +176,6 @@ namespace TaskManager.ViewModels
 				}
 			}
 
-            //if ((preconditions & Preconditions.GotConfirmation) == Preconditions.GotConfirmation)
-            //{
-            //    if (AskForConfirmation("block") == MessageBoxResult.No)
-            //    {
-            //        return false;
-            //    }
-            //}
-
             return true;
         }
     }

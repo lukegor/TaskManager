@@ -8,7 +8,6 @@ using TaskManager.Domain.Services;
 using TaskManager.Services;
 using TaskManager.Infrastructure.Logging;
 using TaskManager.Infrastructure.Settings;
-using TaskManager.Services;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
 using TaskManager.UI.Views;
@@ -99,7 +98,6 @@ namespace TaskManager
             services.AddSingleton<ISystemProcessEnumerator, NtSystemProcessEnumerator>();
             services.AddSingleton<ProcessEnricher>();
 
-            services.AddSingleton<SettingsService>();
             services.AddSingleton<ProcessManager>();
             services.AddSingleton<TimerManager>();
             services.AddTransient<FolderSelector>();
@@ -121,7 +119,6 @@ namespace TaskManager
                 };
             });
 
-            //services.AddTransient<SetPriorityWindow>();
             services.AddTransient<DataExportWindow>();
             services.AddTransient<SettingsWindow>(sp => new SettingsWindow
             {
