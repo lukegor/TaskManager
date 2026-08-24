@@ -2,7 +2,7 @@ using System.IO;
 using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 
-namespace TaskManager.Domain.Services.Data_Export
+namespace TaskManager.Domain.Services.DataExport
 {
     public class CsvExporter : BaseDataExporter
     {

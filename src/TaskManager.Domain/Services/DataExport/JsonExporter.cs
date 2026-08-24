@@ -3,7 +3,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 
-namespace TaskManager.Domain.Services.Data_Export
+namespace TaskManager.Domain.Services.DataExport
 {
 	public class JsonExporter : BaseDataExporter
 	{

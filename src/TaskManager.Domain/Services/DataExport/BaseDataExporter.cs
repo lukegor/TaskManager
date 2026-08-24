@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
-namespace TaskManager.Domain.Services.Data_Export
+namespace TaskManager.Domain.Services.DataExport
 {
     public abstract class BaseDataExporter
     {

@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Primitives;
 
-namespace TaskManager.Domain.Services.Data_Export
+namespace TaskManager.Domain.Services.DataExport
 {
     public class ExcelExporter : BaseDataExporter
     {

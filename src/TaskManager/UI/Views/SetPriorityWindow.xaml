@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TaskManager.UI.Views"
         d:DataContext="{d:DesignInstance Type=viewModels:SetPriorityWindowViewModel}"
         xmlns:viewModels="clr-namespace:TaskManager.ViewModels"
-        xmlns:converters="clr-namespace:TaskManager.Utility.Converters"
+        xmlns:converters="clr-namespace:TaskManager.UI.Converters"
         xmlns:resx="clr-namespace:TaskManager.Resources.Languages"
         mc:Ignorable="d"
         Title="SetPriorityWindow" Height="140" Width="300">

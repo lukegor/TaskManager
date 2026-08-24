@@ -3,7 +3,7 @@ using System.Windows.Data;
 using TaskManager.Domain.Primitives;
 using TaskManager.UI.Localization;
 
-namespace TaskManager.Utility.Converters
+namespace TaskManager.UI.Converters
 {
     public class ProcessRefreshFrequenceConverter : IValueConverter
     {
