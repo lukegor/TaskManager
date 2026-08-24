@@ -2,17 +2,12 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-	  <RootNamespace>TaskManager</RootNamespace>
+    <RootNamespace>TaskManager</RootNamespace>
     <UseWPF>true</UseWPF>
-	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-	  <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-	  <OutputPath>$(SolutionDir)\bin\$(Configuration)-$(Platform)</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <OutputPath>$(SolutionDir)\bin\$(Configuration)</OutputPath>
   </PropertyGroup>
-
-	<PropertyGroup>
-		<OutputPath>$(SolutionDir)\bin\$(Configuration)</OutputPath>
-		<AssemblyName>TaskManager</AssemblyName>
-	</PropertyGroup>
 
 	<ItemGroup>
 	  <None Remove="Resources\Icons\checkmark.ico" />
@@ -32,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	<InternalsVisibleTo Include="TaskManager.Tests"/>
+	<InternalsVisibleTo Include="TaskManager.UnitTests"/>
 	<InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
   </ItemGroup>
 

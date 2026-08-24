@@ -4,9 +4,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="TaskManager.Domain/TaskManager.Domain.csproj" />
-  <Project Path="TaskManager.Shared/TaskManager.Shared.csproj" />
-  <Project Path="TaskManager.Tests/TaskManager.Tests.csproj" />
-  <Project Path="TaskManager.Utility/TaskManager.Utility.csproj" />
-  <Project Path="TaskManager/TaskManager.csproj" />
+  <Project Path="src/TaskManager.Domain/TaskManager.Domain.csproj" />
+  <Project Path="src/TaskManager.Shared/TaskManager.Shared.csproj" />
+  <Project Path="src/TaskManager.Utility/TaskManager.Utility.csproj" />
+  <Project Path="src/TaskManager/TaskManager.csproj" />
+  <Project Path="tests/TaskManager.UnitTests/TaskManager.UnitTests.csproj" />
 </Solution>
