@@ -3,7 +3,7 @@ using TaskManager.Domain.Models;
 using TaskManager.Infrastructure.Settings;
 using TaskManager.Domain.Primitives;
 
-namespace TaskManager.Tests.Infrastructure
+namespace TaskManager.UnitTests.Infrastructure
 {
     /// <summary>
     /// Persistence contract of JsonSettingsStore: round-trips typed values,

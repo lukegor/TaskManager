@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using TaskManager.UI.Behaviors;
 
-namespace TaskManager.Tests.UI_Behaviors
+namespace TaskManager.UnitTests.UI.Behaviors
 {
     public class ColumnVisibilityTests
     {

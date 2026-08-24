@@ -2,7 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Reflection;
 using System.Windows;
 
-namespace TaskManager.Tests.VVM_Tests
+namespace TaskManager.UnitTests.ViewModels
 {
     public class ViewViewmodelTests
     {

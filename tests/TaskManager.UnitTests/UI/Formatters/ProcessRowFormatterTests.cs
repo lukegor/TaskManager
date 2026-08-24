@@ -1,7 +1,7 @@
 using TaskManager.Domain.Models;
 using TaskManager.UI.Formatters;
 
-namespace TaskManager.Tests.UI_Formatters
+namespace TaskManager.UnitTests.UI.Formatters
 {
     public class ProcessRowFormatterTests
     {

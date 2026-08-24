@@ -5,7 +5,7 @@ using TaskManager.Services.ErrorHandling;
 using TaskManager.Domain.Primitives;
 using TaskManager.ViewModels;
 
-namespace TaskManager.Tests.Viewmodels
+namespace TaskManager.UnitTests.ViewModels
 {
     /// <summary>
     /// Dialog contract: edits stay local until Save commits a full snapshot via Update,

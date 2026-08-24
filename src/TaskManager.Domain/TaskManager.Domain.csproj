@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="TaskManager.UnitTests" />
+    <InternalsVisibleTo Include="TaskManager.IntegrationTests" />
   </ItemGroup>
 
 </Project>

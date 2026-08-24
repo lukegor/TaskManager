@@ -6,7 +6,7 @@ using TaskManager.Domain.Models;
 using TaskManager.Domain.Services.DataExport;
 using TaskManager.Domain.Primitives;
 
-namespace TaskManager.Tests
+namespace TaskManager.UnitTests
 {
     public class BaseDataExporterTests : IDisposable
     {

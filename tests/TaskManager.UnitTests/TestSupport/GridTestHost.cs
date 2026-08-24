@@ -6,7 +6,7 @@ using System.Windows.Input;
 using TaskManager.Domain.Models;
 using TaskManager.UI.Controls;
 
-namespace TaskManager.Tests.TestSupport
+namespace TaskManager.UnitTests.TestSupport
 {
     /// <summary>
     /// Builds fully laid-out BetterDataGrid instances off-screen so row containers exist

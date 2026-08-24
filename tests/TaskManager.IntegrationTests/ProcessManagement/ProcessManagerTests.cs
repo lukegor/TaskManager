@@ -8,7 +8,7 @@ using WinProcess = System.Diagnostics.Process;
 using WinProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using ProcessPriorityClass = System.Diagnostics.ProcessPriorityClass;
 
-namespace TaskManager.Tests
+namespace TaskManager.IntegrationTests.ProcessManagement
 {
     /// <summary>
     /// Behavior contract of ProcessManager: snapshot-driven refresh batches (add/update/remove,

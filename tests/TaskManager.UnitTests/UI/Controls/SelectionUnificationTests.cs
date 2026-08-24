@@ -1,10 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
 using TaskManager.Domain.Models;
-using TaskManager.Tests.TestSupport;
+using TaskManager.UnitTests.TestSupport;
 using TaskManager.UI.Controls;
 
-namespace TaskManager.Tests.UI_Controls
+namespace TaskManager.UnitTests.UI.Controls
 {
     // Note on scope: ctrl-click multi-select mechanics are framework-owned; the app-owned
     // contract is the TwoWay binding, exercised identically by programmatic IsSelected writes

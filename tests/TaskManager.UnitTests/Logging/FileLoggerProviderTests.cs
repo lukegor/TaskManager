@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using TaskManager.Infrastructure.Logging;
 
-namespace TaskManager.Tests
+namespace TaskManager.UnitTests
 {
     public class FileLoggerProviderTests : IDisposable
     {

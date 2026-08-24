@@ -1,6 +1,6 @@
 using TaskManager.Domain.Models;
 
-namespace TaskManager.Tests.Models
+namespace TaskManager.UnitTests.Models
 {
     public class ProcessItemTests
     {

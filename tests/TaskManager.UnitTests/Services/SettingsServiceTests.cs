@@ -5,7 +5,7 @@ using TaskManager.Domain.Models;
 using TaskManager.Services;
 using TaskManager.Domain.Primitives;
 
-namespace TaskManager.Tests
+namespace TaskManager.UnitTests
 {
     /// <summary>
     /// Contract of the settings mutation pipeline: validate → persist → swap → notify,

@@ -1,9 +1,9 @@
 using System.Windows.Controls;
 using TaskManager.Domain.Models;
-using TaskManager.Tests.TestSupport;
+using TaskManager.UnitTests.TestSupport;
 using TaskManager.UI.Controls;
 
-namespace TaskManager.Tests.UI_Controls
+namespace TaskManager.UnitTests.UI.Controls
 {
     public class RightClickSemanticsTests : IDisposable
     {

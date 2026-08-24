@@ -1,7 +1,7 @@
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services;
 
-namespace TaskManager.Tests.ProcessPipeline
+namespace TaskManager.UnitTests.ProcessPipeline
 {
     public class ProcessDiffEngineTests
     {

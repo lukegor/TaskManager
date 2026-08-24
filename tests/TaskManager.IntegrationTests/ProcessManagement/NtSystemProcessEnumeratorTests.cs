@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using TaskManager.Domain.Services;
 
-namespace TaskManager.Tests
+namespace TaskManager.IntegrationTests.ProcessManagement
 {
     public class NtSystemProcessEnumeratorTests
     {

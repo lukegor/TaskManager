@@ -1,10 +1,10 @@
 using System.Windows;
 using TaskManager.Domain.Models;
-using TaskManager.Tests.TestSupport;
+using TaskManager.UnitTests.TestSupport;
 using TaskManager.UI.Controls;
 using TaskManager.UI.Formatters;
 
-namespace TaskManager.Tests.UI_Controls
+namespace TaskManager.UnitTests.UI.Controls
 {
     public class ClipboardCopyTests : IDisposable
     {

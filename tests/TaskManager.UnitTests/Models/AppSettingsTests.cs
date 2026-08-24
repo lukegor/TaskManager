@@ -1,7 +1,7 @@
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Primitives;
 
-namespace TaskManager.Tests.Models
+namespace TaskManager.UnitTests.Models
 {
     public class AppSettingsTests
     {

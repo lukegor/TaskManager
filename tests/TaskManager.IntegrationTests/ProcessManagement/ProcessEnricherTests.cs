@@ -4,7 +4,7 @@ using TaskManager.Domain.Services;
 using TaskManager.Domain.Primitives;
 using WinProcess = System.Diagnostics.Process;
 
-namespace TaskManager.Tests
+namespace TaskManager.IntegrationTests.ProcessManagement
 {
     public class ProcessEnricherTests
     {

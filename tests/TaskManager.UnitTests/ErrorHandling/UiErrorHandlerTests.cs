@@ -5,7 +5,7 @@ using TaskManager.Domain.Abstractions;
 using TaskManager.Abstractions;
 using TaskManager.Services.ErrorHandling;
 
-namespace TaskManager.Tests
+namespace TaskManager.UnitTests
 {
     public class UiErrorHandlerTests
     {

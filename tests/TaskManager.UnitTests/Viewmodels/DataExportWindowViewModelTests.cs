@@ -14,7 +14,7 @@ using TaskManager.Domain.Primitives;
 using DataTypeEnum = TaskManager.Domain.Primitives.DataType;
 using ExportationTypeEnum = TaskManager.Domain.Primitives.ExportationType;
 
-namespace TaskManager.Tests
+namespace TaskManager.UnitTests
 {
     public class DataExportWindowViewModelTests : IDisposable
     {
