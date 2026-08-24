@@ -21,6 +21,7 @@ namespace TaskManager.IntegrationTests.ProcessManagement
     {
         private readonly ScriptedEnumerator _enumerator = new();
         private readonly ProcessManager _manager;
+        private readonly ProcessOperationsService _processOps;
         private readonly ISettingsService _settings;
         private readonly TimerManager _timer;
         private readonly WinProcess _self = WinProcess.GetCurrentProcess();
@@ -49,6 +50,7 @@ namespace TaskManager.IntegrationTests.ProcessManagement
                 _settings,
                 _timer,
                 NullLogger<ProcessManager>.Instance);
+            _processOps = new ProcessOperationsService(NullLogger<ProcessOperationsService>.Instance);
             _originalPriority = _self.PriorityClass;
         }
 
@@ -197,7 +199,8 @@ namespace TaskManager.IntegrationTests.ProcessManagement
             _enumerator.Queue(SelfSnap());
             await _manager.LoadProcesses();
 
-            _manager.SetPriority(new[] { _self.Id }, ProcessPriorityClass.AboveNormal);
+            _processOps.SetPriority(new[] { _self.Id }, ProcessPriorityClass.AboveNormal,
+                pid => _manager.WritebackPriority(pid, ProcessBasePriority.Get(ProcessPriorityClass.AboveNormal)));
 
             _self.Refresh();
             _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
@@ -212,7 +215,8 @@ namespace TaskManager.IntegrationTests.ProcessManagement
             await _manager.LoadProcesses();
 
             // a process can die between selection and confirmation; the rest of the batch must survive it
-            _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.BelowNormal);
+            _processOps.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.BelowNormal,
+                pid => _manager.WritebackPriority(pid, ProcessBasePriority.Get(ProcessPriorityClass.BelowNormal)));
 
             _self.Refresh();
             _self.PriorityClass.ShouldBe(ProcessPriorityClass.BelowNormal);
@@ -224,7 +228,7 @@ namespace TaskManager.IntegrationTests.ProcessManagement
         {
             int stalePid = GetUnusedPid();
 
-            var summary = _manager.SetPriority(new[] { stalePid }, ProcessPriorityClass.Normal);
+            var summary = _processOps.SetPriority(new[] { stalePid }, ProcessPriorityClass.Normal);
 
             summary.SucceededPids.ShouldBeEmpty();
             var failure = summary.Failures.ShouldHaveSingleItem();
@@ -239,7 +243,8 @@ namespace TaskManager.IntegrationTests.ProcessManagement
             _enumerator.Queue(SelfSnap());
             await _manager.LoadProcesses();
 
-            var summary = _manager.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.AboveNormal);
+            var summary = _processOps.SetPriority(new[] { stalePid, _self.Id }, ProcessPriorityClass.AboveNormal,
+                pid => _manager.WritebackPriority(pid, ProcessBasePriority.Get(ProcessPriorityClass.AboveNormal)));
 
             summary.SucceededPids.ShouldBe(new[] { _self.Id });
             summary.Failures.ShouldHaveSingleItem();
@@ -264,7 +269,7 @@ namespace TaskManager.IntegrationTests.ProcessManagement
 
             try
             {
-                var summary = _manager.TerminateProcesses(new[] { victim.Id, stalePid });
+                var summary = _processOps.TerminateProcesses(new[] { victim.Id, stalePid });
 
                 summary.SucceededPids.ShouldBe(new[] { victim.Id });
                 var failure = summary.Failures.ShouldHaveSingleItem();

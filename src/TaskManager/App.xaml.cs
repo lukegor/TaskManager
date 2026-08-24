@@ -98,6 +98,7 @@ namespace TaskManager
             services.AddSingleton<ISystemProcessEnumerator, NtSystemProcessEnumerator>();
             services.AddSingleton<ProcessEnricher>();
 
+            services.AddSingleton<ProcessOperationsService>();
             services.AddSingleton<ProcessManager>();
             services.AddSingleton<TimerManager>();
             services.AddTransient<FolderSelector>();

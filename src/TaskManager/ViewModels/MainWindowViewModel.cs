@@ -28,6 +28,7 @@ namespace TaskManager.ViewModels
         private readonly IMessageService _messageService;
         private readonly IDispatcherService _dispatcherService;
         private readonly ProcessManager _processManager;
+        private readonly ProcessOperationsService _processOps;
         private readonly IErrorHandler _errorHandler;
         private readonly ISettingsService _settings;
 
@@ -60,6 +61,7 @@ namespace TaskManager.ViewModels
             IMessageService messageService,
             IDispatcherService dispatcherService,
             ProcessManager processManager,
+            ProcessOperationsService processOps,
             IErrorHandler errorHandler,
             ISettingsService settings)
         {
@@ -67,6 +69,7 @@ namespace TaskManager.ViewModels
             _messageService = messageService;
             _dispatcherService = dispatcherService;
             _processManager = processManager;
+            _processOps = processOps;
             _errorHandler = errorHandler;
             _settings = settings;
 
@@ -132,7 +135,7 @@ namespace TaskManager.ViewModels
 
             _errorHandler.Guard(() =>
             {
-                var summary = _processManager.TerminateProcesses(
+                var summary = _processOps.TerminateProcesses(
                     GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray());
                 ReportPartialFailures(summary);
             });

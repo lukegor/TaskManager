@@ -28,15 +28,17 @@ namespace TaskManager.ViewModels
 
         private readonly IMessageService _messageService;
         private readonly ProcessManager _processManager;
+        private readonly ProcessOperationsService _processOps;
         private readonly IErrorHandler _errorHandler;
 
         private readonly IReadOnlyCollection<int> _processIds;
 
         public SetPriorityWindowViewModel(IMessageService messageService, ProcessManager processManager,
-            IReadOnlyCollection<int> processes, IErrorHandler errorHandler)
+            ProcessOperationsService processOps, IReadOnlyCollection<int> processes, IErrorHandler errorHandler)
         {
             _messageService = messageService;
             _processManager = processManager;
+            _processOps = processOps;
             _processIds = processes;
             _errorHandler = errorHandler;
             OnConfirmCommand = new RelayCommand(OnConfirm);
@@ -52,7 +54,8 @@ namespace TaskManager.ViewModels
                     return;
                 }
 
-                var summary = _processManager.SetPriority(_processIds, (ProcessPriorityClass)Priority);
+                var summary = _processOps.SetPriority(_processIds, (ProcessPriorityClass)Priority,
+                    pid => _processManager.WritebackPriority(pid, ProcessBasePriority.Get((ProcessPriorityClass)Priority)));
                 ReportPartialFailures(summary);
 
                 var window = GetAssociatedWindow<SetPriorityWindow>();

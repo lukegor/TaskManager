@@ -23,8 +23,9 @@ namespace TaskManager.Services.Factories
 
             var messageService = _serviceProvider.GetRequiredService<IMessageService>();
             var processManager = _serviceProvider.GetRequiredService<ProcessManager>();
+            var processOps = _serviceProvider.GetRequiredService<ProcessOperationsService>();
             var errorHandler = _serviceProvider.GetRequiredService<IErrorHandler>();
-            var setPriorityWindowVM = new SetPriorityWindowViewModel(messageService, processManager, processes, errorHandler);
+            var setPriorityWindowVM = new SetPriorityWindowViewModel(messageService, processManager, processOps, processes, errorHandler);
             setPriorityWindow.DataContext = setPriorityWindowVM;
 
             return setPriorityWindow;

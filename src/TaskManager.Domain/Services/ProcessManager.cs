@@ -262,76 +262,17 @@ namespace TaskManager.Domain.Services
             Ppid = p.Ppid,
         };
 
-        /// <summary>Applies the OS operation per PID; expected OS rejections are reported as data, never aborting the batch.</summary>
-        public ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> selectedProcesses)
+        /// <summary>Updates priority in the index after a successful OS operation.</summary>
+        public void WritebackPriority(int pid, int newPriority)
         {
-            return ExecutePerPid(selectedProcesses, pid =>
+            lock (_index)
             {
-                using var process = System.Diagnostics.Process.GetProcessById(pid);
-                process.Kill();
-                _logger.LogDebug("Process {Pid} was terminated", pid);
-            });
-        }
-
-        /// <summary>Applies the OS operation per PID; expected OS rejections are reported as data, never aborting the batch.</summary>
-        public ProcessOpSummary SetPriority(IReadOnlyCollection<int> selectedProcesses, System.Diagnostics.ProcessPriorityClass priority)
-        {
-            var summary = ExecutePerPid(selectedProcesses, pid =>
-            {
-                using var process = System.Diagnostics.Process.GetProcessById(pid);
-                process.PriorityClass = priority;
-            });
-
-            foreach (var pid in summary.SucceededPids)
-            {
-                lock (_index)
+                if (_index.TryGetValue(pid, out var item))
                 {
-                    if (_index.TryGetValue(pid, out var item))
-                    {
-                        item.Process.Priority = ProcessBasePriority.Get(priority);
-                    }
+                    item.Process.Priority = newPriority;
                 }
             }
-
-            return summary;
         }
-
-        /// <remarks>
-        /// Expected OS-level rejections are recorded per PID and never abort the batch;
-        /// they are data (<see cref="ProcessOpSummary"/>), not exceptions crossing the layer boundary.
-        /// </remarks>
-        private ProcessOpSummary ExecutePerPid(IEnumerable<int> selectedPids, Action<int> operation)
-        {
-            var succeeded = new List<int>();
-            var failures = new List<ProcessOpFailure>();
-
-            foreach (var pid in selectedPids)
-            {
-                try
-                {
-                    operation(pid);
-                    succeeded.Add(pid);
-                }
-                catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
-                {
-                    var reason = ClassifyFailure(ex);
-                    _logger.LogWarning(ex, "Process operation failed for PID {Pid} ({Reason})", pid, reason);
-                    failures.Add(new ProcessOpFailure(pid, reason));
-                }
-            }
-
-            return new ProcessOpSummary { SucceededPids = succeeded, Failures = failures };
-        }
-
-        private const int ErrorAccessDenied = 5;
-
-        private static ProcessOpFailureReason ClassifyFailure(Exception ex) => ex switch
-        {
-            Win32Exception { NativeErrorCode: ErrorAccessDenied } => ProcessOpFailureReason.AccessDenied,
-            ArgumentException => ProcessOpFailureReason.ProcessExited,
-            InvalidOperationException => ProcessOpFailureReason.ProcessExited,
-            _ => ProcessOpFailureReason.Unknown
-        };
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
