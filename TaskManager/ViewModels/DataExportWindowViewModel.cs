@@ -50,7 +50,7 @@ namespace TaskManager.ViewModels
 			}
 		}
 
-		private IEnumerable<Process> processes;
+		private readonly IReadOnlyList<Process> _processes;
 
 		public ICommand SelectFolderCommand { get; }
 		public ICommand OnConfirmClick { get; }
@@ -65,13 +65,13 @@ namespace TaskManager.ViewModels
 			ISettingsService settings,
 			IMessageService messageService,
 			IErrorHandler errorHandler,
-			IEnumerable<Process> processes)
+			IReadOnlyList<Process> processes)
 		{
             _serviceProvider = serviceProvider;
             _settings = settings;
 			_messageService = messageService;
 			_errorHandler = errorHandler;
-            this.processes = processes;
+            _processes = processes.ToArray();
 
             SelectFolderCommand = new RelayCommand(_folderSelector.SelectFolder);
             OnConfirmClick = new RelayCommand(OnConfirm);
@@ -107,7 +107,7 @@ namespace TaskManager.ViewModels
 				switch (exportation)
 				{
 					case ExportationType.Processes:
-						var result = exporter.Export(DirPath, processes);
+						var result = exporter.Export(DirPath, _processes);
 						if (result.IsSuccess)
 						{
 							return true;

@@ -109,7 +109,7 @@ namespace TaskManager.ViewModels
 		private void Export()
 		{
             DataExportWindow exportWindow = _serviceProvider.GetRequiredService<DataExportWindow>();
-            var processes = Processes.Select(x => x.Process);
+            var processes = _processManager.SnapshotForExport();
             exportWindow.DataContext = _serviceProvider.GetRequiredService<DataExportViewModelFactory>().Create(processes);
 
             exportWindow.ShowDialog();
