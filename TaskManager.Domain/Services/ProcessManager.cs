@@ -73,6 +73,11 @@ namespace TaskManager.Domain.Services
 
         public async Task LoadProcesses() => await RunRefreshAsync(manual: false);
 
+        public void StartPollingProcesses()
+        {
+            _timer.Start();
+        }
+
         public async Task PerformRefresh(bool isUserInitiated)
         {
             await RunRefreshAsync(manual: isUserInitiated);

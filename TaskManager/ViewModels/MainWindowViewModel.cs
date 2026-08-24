@@ -77,6 +77,7 @@ namespace TaskManager.ViewModels
 
             // load running processes in the background; the window must not block on enumeration
             _ = _errorHandler.GuardAsync(() => _processManager.LoadProcesses(), "loading initial process list");
+            _processManager.StartPollingProcesses();
 
             // count forwarder: ProcessCount is owned by ProcessManager now
             _processManager.PropertyChanged += (_, e) =>
