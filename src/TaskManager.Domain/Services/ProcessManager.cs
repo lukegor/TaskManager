@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Domain.Services
 {
@@ -66,7 +66,7 @@ namespace TaskManager.Domain.Services
 
         private void OnSettingsChanged(AppSettings settings)
         {
-            var seconds = RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping[settings.ProcessesRefreshFrequency];
+            var seconds = RefreshFrequencies.SecondsMapping[settings.ProcessesRefreshFrequency];
             _timer.UpdatePolling(seconds);
             _logger.LogInformation("Polling interval updated to {Seconds}s", seconds);
         }
@@ -288,7 +288,7 @@ namespace TaskManager.Domain.Services
                 {
                     if (_index.TryGetValue(pid, out var item))
                     {
-                        item.Process.Priority = PriorityTypeHelper.GetBasePriority(priority);
+                        item.Process.Priority = ProcessBasePriority.Get(priority);
                     }
                 }
             }

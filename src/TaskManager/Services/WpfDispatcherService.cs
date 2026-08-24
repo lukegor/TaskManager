@@ -1,4 +1,4 @@
-﻿using TaskManager.Domain.Abstractions;
+using TaskManager.Domain.Abstractions;
 
 namespace TaskManager.Services
 {

@@ -1,4 +1,4 @@
-﻿namespace TaskManager.Utility.Utility
+namespace TaskManager.ViewModels
 {
     [Flags]
     public enum Preconditions

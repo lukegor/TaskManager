@@ -3,7 +3,7 @@ using NSubstitute;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 using WinProcess = System.Diagnostics.Process;
 using WinProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using ProcessPriorityClass = System.Diagnostics.ProcessPriorityClass;

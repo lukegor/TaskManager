@@ -1,32 +1,10 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using TaskManager.Shared.Resources.Languages;
 
-namespace TaskManager.Utility.Utility
+namespace TaskManager.UI.Localization
 {
     public static class PriorityTypeHelper
     {
-        private static readonly Dictionary<ProcessPriorityClass, int> BasePriorityMap = new Dictionary<ProcessPriorityClass, int>
-        {
-            { ProcessPriorityClass.Idle, 4 },
-            { ProcessPriorityClass.BelowNormal, 6 },
-            { ProcessPriorityClass.Normal, 8 },
-            { ProcessPriorityClass.AboveNormal, 10 },
-            { ProcessPriorityClass.High, 13 },
-            { ProcessPriorityClass.RealTime, 24 },
-        };
-
-        /// <summary>
-        /// ProcessPriorityClass enum values to BasePriority
-        /// </summary>
-        /// <param name="priority"></param>
-        /// <returns></returns>
-        public static int GetBasePriority(ProcessPriorityClass priority)
-        {
-            return BasePriorityMap.TryGetValue(priority, out int basePriority)
-                ? basePriority
-                : (int)priority;
-        }
-
         private static readonly Dictionary<string, ProcessPriorityClass> ProcessPriorityTypeMapping = new Dictionary<string, ProcessPriorityClass>
         {
             { Strings.RealTime, ProcessPriorityClass.RealTime },
@@ -42,9 +20,9 @@ namespace TaskManager.Utility.Utility
             return EnumHelper.MapLocalStringToEnum(input, ProcessPriorityTypeMapping);
         }
 
-        public static string MapEnumToLocalString(ProcessPriorityClass shape)
+        public static string MapEnumToLocalString(ProcessPriorityClass priority)
         {
-            return EnumHelper.MapEnumToLocalString(shape, ProcessPriorityTypeMapping);
+            return EnumHelper.MapEnumToLocalString(priority, ProcessPriorityTypeMapping);
         }
 
         public static IEnumerable<string> GetAllLocalized()

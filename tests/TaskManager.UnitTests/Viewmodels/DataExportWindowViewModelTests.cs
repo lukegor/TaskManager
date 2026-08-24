@@ -9,9 +9,9 @@ using TaskManager.Domain.Services.Data_Export;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
 using TaskManager.ViewModels;
-using TaskManager.Utility.Utility;
-using DataTypeEnum = TaskManager.Utility.Utility.DataType;
-using ExportationTypeEnum = TaskManager.Utility.Utility.ExportationType;
+using TaskManager.Domain.Primitives;
+using DataTypeEnum = TaskManager.Domain.Primitives.DataType;
+using ExportationTypeEnum = TaskManager.Domain.Primitives.ExportationType;
 
 namespace TaskManager.Tests
 {

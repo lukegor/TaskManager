@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Domain.Services
 {

@@ -1,6 +1,6 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
-namespace TaskManager.Utility.Utility
+namespace TaskManager.Domain.Primitives
 {
     public enum ArchitectureType
     {

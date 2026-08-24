@@ -6,7 +6,6 @@
   </Configurations>
   <Project Path="src/TaskManager.Domain/TaskManager.Domain.csproj" />
   <Project Path="src/TaskManager.Shared/TaskManager.Shared.csproj" />
-  <Project Path="src/TaskManager.Utility/TaskManager.Utility.csproj" />
   <Project Path="src/TaskManager/TaskManager.csproj" />
   <Project Path="tests/TaskManager.UnitTests/TaskManager.UnitTests.csproj" />
 </Solution>

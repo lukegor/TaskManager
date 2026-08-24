@@ -1,4 +1,4 @@
-﻿namespace TaskManager.Utility.Utility
+namespace TaskManager.UI.Localization
 {
     public static class EnumHelper
     {

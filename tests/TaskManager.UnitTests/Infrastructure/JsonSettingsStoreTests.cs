@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Infrastructure.Settings;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Tests.Infrastructure
 {

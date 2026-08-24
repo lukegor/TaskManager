@@ -9,7 +9,7 @@ using TaskManager.Services.Factories;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Shared.Resources.Languages;
 using TaskManager.UI.Views;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 using TaskManager.ViewModels.Abstraction;
 
 namespace TaskManager.ViewModels

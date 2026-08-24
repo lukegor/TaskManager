@@ -1,7 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Domain.Models
 {

@@ -1,4 +1,4 @@
-﻿using TaskManager.Domain.Models;
+using TaskManager.Domain.Models;
 
 namespace TaskManager.Domain.Abstractions
 {

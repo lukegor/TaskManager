@@ -1,6 +1,6 @@
 using System.Timers;
 using TaskManager.Domain.Abstractions;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 using Timer = System.Timers.Timer;
 
 namespace TaskManager.Domain.Services
@@ -35,7 +35,7 @@ namespace TaskManager.Domain.Services
             _settings = settings;
 
             _timer = new Timer();
-            Interval = MilisecondMultiplier * RefreshFrequencyTypeHelper.RefreshFrequencyTypeSecondsMapping
+            Interval = MilisecondMultiplier * RefreshFrequencies.SecondsMapping
                 [_settings.Current.ProcessesRefreshFrequency];
             _timer.Elapsed += OnTimerElapsed;
         }

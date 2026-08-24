@@ -1,6 +1,7 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Windows.Data;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
+using TaskManager.UI.Localization;
 
 namespace TaskManager.Utility.Converters
 {

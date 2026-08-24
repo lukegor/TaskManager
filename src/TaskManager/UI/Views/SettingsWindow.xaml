@@ -1,4 +1,4 @@
-﻿<Window x:Class="TaskManager.UI.Views.SettingsWindow"
+<Window x:Class="TaskManager.UI.Views.SettingsWindow"
        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +7,6 @@
        d:DataContext="{d:DesignInstance Type=viewModels:SettingsWindowViewModel}"
        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
        xmlns:viewModels="clr-namespace:TaskManager.ViewModels"
-       xmlns:util="clr-namespace:TaskManager.Utility.Utility;assembly=TaskManager.Utility"
        xmlns:converters="clr-namespace:TaskManager.Utility.Converters"
        xmlns:resx="clr-namespace:TaskManager.Shared.Resources.Languages;assembly=TaskManager.Shared"
        mc:Ignorable="d"

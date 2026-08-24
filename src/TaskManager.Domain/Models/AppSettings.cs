@@ -1,5 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Domain.Models
 {

@@ -1,7 +1,7 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Reflection;
 
-namespace TaskManager.Utility.Utility
+namespace TaskManager.Domain.Primitives
 {
     public static class EnumExtensions
     {

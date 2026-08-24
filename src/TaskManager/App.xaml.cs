@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Windows;
@@ -11,7 +11,7 @@ using TaskManager.Services;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
 using TaskManager.UI.Views;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 using TaskManager.ViewModels;
 
 namespace TaskManager

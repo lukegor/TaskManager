@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using TaskManager.Domain.Services;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 using WinProcess = System.Diagnostics.Process;
 
 namespace TaskManager.Tests

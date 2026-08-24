@@ -1,4 +1,4 @@
-﻿namespace TaskManager.Domain.Models
+namespace TaskManager.Domain.Models
 {
     public interface IExportable
 	{

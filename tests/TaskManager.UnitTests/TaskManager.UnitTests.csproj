@@ -30,7 +30,6 @@
     <ProjectReference Include="..\..\src\TaskManager\TaskManager.csproj" />
     <ProjectReference Include="..\..\src\TaskManager.Domain\TaskManager.Domain.csproj" />
     <ProjectReference Include="..\..\src\TaskManager.Shared\TaskManager.Shared.csproj" />
-    <ProjectReference Include="..\..\src\TaskManager.Utility\TaskManager.Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>

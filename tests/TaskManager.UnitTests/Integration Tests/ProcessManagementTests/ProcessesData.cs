@@ -1,4 +1,4 @@
-﻿namespace TaskManager.Tests.Integration_Tests.ProcessManagementTests
+namespace TaskManager.Tests.Integration_Tests.ProcessManagementTests
 {
     public class ProcessesData
     {

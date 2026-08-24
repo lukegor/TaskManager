@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Services;
 using TaskManager.Services.ErrorHandling;

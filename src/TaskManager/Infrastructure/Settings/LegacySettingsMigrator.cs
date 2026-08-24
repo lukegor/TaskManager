@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Models;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Infrastructure.Settings
 {

@@ -1,4 +1,4 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
@@ -8,7 +8,8 @@ using TaskManager.Domain.Services;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Shared.Resources.Languages;
 using TaskManager.UI.Views;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
+using TaskManager.UI.Localization;
 using TaskManager.ViewModels.Abstraction;
 
 namespace TaskManager.ViewModels

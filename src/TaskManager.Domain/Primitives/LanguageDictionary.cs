@@ -1,6 +1,6 @@
-﻿using System.Globalization;
+using System.Globalization;
 
-namespace TaskManager.Utility.Utility
+namespace TaskManager.Domain.Primitives
 {
     public class LanguageDictionary : Dictionary<string, CultureInfo>
     {

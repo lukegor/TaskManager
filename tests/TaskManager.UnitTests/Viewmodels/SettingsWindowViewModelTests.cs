@@ -2,7 +2,7 @@ using NSubstitute;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Services.ErrorHandling;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 using TaskManager.ViewModels;
 
 namespace TaskManager.Tests.Viewmodels

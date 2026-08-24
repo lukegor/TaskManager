@@ -1,7 +1,7 @@
-﻿using System.Windows;
+using System.Windows;
 using System.Windows.Media;
 
-namespace TaskManager.Utility.Utility
+namespace TaskManager.UI.Controls
 {
 	public static class VisualTreeUtilityHelper
 	{

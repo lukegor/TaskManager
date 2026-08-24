@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 

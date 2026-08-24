@@ -1,5 +1,5 @@
 using TaskManager.Domain.Models;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
 
 namespace TaskManager.Tests.Models
 {

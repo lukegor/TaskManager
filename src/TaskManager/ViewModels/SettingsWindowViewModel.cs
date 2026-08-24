@@ -1,10 +1,11 @@
-﻿using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.UI.Views;
-using TaskManager.Utility.Utility;
+using TaskManager.Domain.Primitives;
+using TaskManager.UI.Localization;
 using TaskManager.ViewModels.Abstraction;
 
 namespace TaskManager.ViewModels
