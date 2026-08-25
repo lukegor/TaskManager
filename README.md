@@ -39,6 +39,27 @@ dotnet test tests/TaskManager.UnitTests          # hermetic suite
 dotnet test tests/TaskManager.IntegrationTests   # touches real system state
 ```
 
+## Logging
+
+Logs go to `%LOCALAPPDATA%\TaskManager\logs\tm-yyyyMMdd.log` (7-day retention). Writing is
+asynchronous: entries pass through a bounded in-memory buffer persisted by a background
+writer; under extreme burst pressure the oldest buffered entries are dropped (one warning
+line notes each such episode). Pending entries are flushed on normal application exit.
+
+Conventions for new code:
+
+| Level | Use for |
+|---|---|
+| Debug | hot-path detail (refresh ticks, per-PID operations); guard expensive arguments with `IsEnabled` |
+| Information | lifecycle milestones and batch outcomes |
+| Warning | recovered failures with context |
+| Error / Critical | failures needing attention; terminal handlers |
+
+- Message templates are static literals with named PascalCase placeholders (`{Pid}`, `{ElapsedMs}`) — never interpolate values into the string.
+- Pass exceptions via the dedicated argument (`_logger.LogWarning(ex, "...")`), not as placeholders.
+- Categories come from `ILogger<T>` of the owning type.
+- LoggerMessage source generation (CA1848) is deliberately deferred.
+
 ## Design docs
 
 Architecture decisions and plans live under `docs/superpowers/` (`specs/`, `plans/`).

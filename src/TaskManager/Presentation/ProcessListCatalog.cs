@@ -278,6 +278,7 @@ namespace TaskManager.Presentation
 
         private async Task RefreshCoreAsync()
         {
+            var startTimestamp = _timeProvider.GetTimestamp();
             IReadOnlyList<ProcessSnapshot> snapshot = await Task.Run(() => _enumerator.Capture()).ConfigureAwait(false);
 
             Dictionary<int, Process> current;
@@ -310,6 +311,15 @@ namespace TaskManager.Presentation
 
                 return new PipelineBatch(diff, enrichments);
             }).ConfigureAwait(false);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                var elapsed = _timeProvider.GetElapsedTime(startTimestamp);
+                var diff = batch.Batch;
+                _logger.LogDebug(
+                    "Refresh completed in {ElapsedMs:F1} ms: {AddedCount} added, {RemovedCount} removed, {UpdatedCount} updated",
+                    elapsed.TotalMilliseconds, diff.Added.Count, diff.Removed.Count, diff.Updated.Count);
+            }
 
             ApplyBatch(batch.Batch, batch.Enrichments);
         }
