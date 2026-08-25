@@ -19,33 +19,25 @@ namespace TaskManager.Infrastructure.Settings
 
         private readonly string _filePath;
         private readonly ILogger<JsonSettingsStore> _logger;
-        private readonly Func<StoredSettings?>? _legacyReader;
 
         public JsonSettingsStore(ILogger<JsonSettingsStore> logger)
-            : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TaskManager"),
-                   () => LegacySettingsMigrator.TryRead(logger), logger)
+            : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "TaskManager"), logger)
         {
-        }
-
-        public JsonSettingsStore(string directory, Func<StoredSettings?>? legacyReader, ILogger<JsonSettingsStore> logger)
-        {
-            _filePath = Path.Combine(directory, "settings.json");
-            _logger = logger;
-            _legacyReader = legacyReader;
         }
 
         public JsonSettingsStore(string directory, ILogger<JsonSettingsStore> logger)
-            : this(directory, null, logger)
         {
+            _filePath = Path.Combine(directory, "settings.json");
+            _logger = logger;
         }
 
-        /// <summary>Returns persisted settings; never throws. Missing file yields defaults
-        /// after a one-time best-effort import of the legacy store.</summary>
+        /// <summary>Returns persisted settings; never throws. Missing file yields defaults.</summary>
         public AppSettings Load()
         {
             if (!File.Exists(_filePath))
             {
-                return LoadLegacyOrDefaults();
+                return AppSettings.Defaults;
             }
 
             string json;
@@ -126,28 +118,6 @@ namespace TaskManager.Infrastructure.Settings
                     File.Delete(tempPath);
                 }
             }
-        }
-
-        private AppSettings LoadLegacyOrDefaults()
-        {
-            if (_legacyReader is null)
-            {
-                return AppSettings.Defaults;
-            }
-
-            var legacy = _legacyReader.Invoke();
-            if (legacy is null)
-            {
-                return AppSettings.Defaults;
-            }
-
-            var migrated = Materialize(legacy);
-            _logger.LogInformation(
-                "Migrated legacy settings (language: {Language}, frequency: {Frequency})",
-                migrated.Language, migrated.ProcessesRefreshFrequency);
-
-            Save(migrated); // promote to the JSON store so migration never runs again
-            return migrated;
         }
 
         private AppSettings Materialize(StoredSettings stored)

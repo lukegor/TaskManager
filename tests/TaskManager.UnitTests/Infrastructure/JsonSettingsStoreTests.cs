@@ -128,47 +128,6 @@ namespace TaskManager.UnitTests.Infrastructure
                 .Load().ShouldBe(AppSettings.Defaults);
         }
 
-        [Fact]
-        public void Load_WithoutJsonFile_ImportsLegacyValuesAndPersistsThem()
-        {
-            var legacy = new StoredSettings("polski", RefreshFrequencyType.Paused, "dd_MM_yyyy--HH_mm_ss");
-            var store = new JsonSettingsStore(_directory, () => legacy, NullLogger<JsonSettingsStore>.Instance);
-
-            var settings = store.Load();
-
-            settings.Language.ShouldBe("polski");
-            settings.ProcessesRefreshFrequency.ShouldBe(RefreshFrequencyType.Paused);
-            settings.DateTimeFormat.ShouldBe("dd_MM_yyyy--HH_mm_ss");
-            File.Exists(FilePath).ShouldBeTrue("migrated values must be promoted to the JSON store");
-
-            // second load reads the migrated file; the legacy reader must not be consulted
-            var storeWithHostileReader = new JsonSettingsStore(
-                _directory,
-                () => throw new InvalidOperationException("legacy reader called after migration"),
-                NullLogger<JsonSettingsStore>.Instance);
-            storeWithHostileReader.Load().ShouldBe(settings);
-        }
-
-        [Fact]
-        public void Load_WhenLegacyReaderYieldsNothing_ReturnsDefaultsWithoutCreatingFile()
-        {
-            var store = new JsonSettingsStore(_directory, () => null, NullLogger<JsonSettingsStore>.Instance);
-
-            store.Load().ShouldBe(AppSettings.Defaults);
-            File.Exists(FilePath).ShouldBeFalse();
-        }
-
-        [Theory]
-        [InlineData("0", RefreshFrequencyType.High)]
-        [InlineData("3", RefreshFrequencyType.Paused)]
-        [InlineData("", null)]
-        [InlineData("abc", null)]
-        [InlineData("9", null)]
-        public void ParseFrequency_MapsNumericStringsAndRejectsGarbage(string raw, RefreshFrequencyType? expected)
-        {
-            LegacySettingsMigrator.ParseFrequency(raw).ShouldBe(expected);
-        }
-
         public void Dispose()
         {
             if (Directory.Exists(_directory))
