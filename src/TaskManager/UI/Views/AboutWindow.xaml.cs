@@ -16,8 +16,11 @@ namespace TaskManager.UI.Views
                 : AboutInfo.Commit;
         }
 
-        private void OnOpenRepository(object sender, RequestNavigateEventArgs e) =>
+        private void OnOpenRepository(object sender, RequestNavigateEventArgs e)
+        {
             Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri) { UseShellExecute = true });
+            e.Handled = true;
+        }
 
         private void OnClose(object sender, RoutedEventArgs e) => Close();
     }

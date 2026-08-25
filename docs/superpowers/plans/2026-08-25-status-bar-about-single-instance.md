@@ -699,7 +699,7 @@ namespace TaskManager.UnitTests.Services
         </TextBlock>
         <TextBlock Text="{x:Static resx:Strings.AboutLicenseLabel}"/>
         <TextBlock Margin="0,10,0,0">
-            <Hyperlink RequestNavigate="OnOpenRepository">
+            <Hyperlink NavigateUri="https://github.com/lukegor/TaskManager" RequestNavigate="OnOpenRepository">
                 <Run Text="https://github.com/lukegor/TaskManager"/>
             </Hyperlink>
         </TextBlock>
