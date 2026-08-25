@@ -116,7 +116,7 @@ New tests:
 2. `Dispose_FlushesPendingEntries` — multiple entries across categories survive shutdown without any explicit flush call.
 3. `Dispose_IsIdempotent` — double dispose throws nothing, single drain outcome.
 4. `Rollover_CreatesNewDailyFile_AndRunsRetention` — `FakeTimeProvider` advanced across midnight between entries; second file created, stale files deleted at rollover.
-5. `Overflow_ReportsExactlyOneNotice_PerEpisode` — small-capacity internal ctor; burst past capacity; oldest entries lost; exactly one overflow notice after recovery; a second burst produces exactly one more.
+5. `Overflow_ReportsExactlyOneNotice_PerEpisode` - small-capacity internal ctor; burst past capacity; exactly one overflow notice per episode (arming is guaranteed because the drain observes the queue pre-dequeue, where any non-empty observation with capacity 1..n saturates). Which specific entries survive eviction is BCL `DropOldest` behavior and deliberately NOT asserted - under an auto-started drain, saturation itself is scheduling-dependent.
 6. `Drain_SurvivesStreamFailure` — locked target directory forces write errors; no exception escapes any API; provider disposes cleanly.
 
 ## 6. L2 — Code Changes
