@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using TaskManager.Domain.Primitives;
+using TaskManager.Domain.Services;
 
 namespace TaskManager.Domain.Models
 {
@@ -35,6 +36,39 @@ namespace TaskManager.Domain.Models
         [IgnoreSerialization]
         [JsonIgnore]
         public string ArchitectureTypeDisplay => EnumExtensions.ToString(ArchitectureType);
+
+        /// <summary>Single field-mapping point from a fresh snapshot plus enrichment.</summary>
+        public static Process FromSnapshot(ProcessSnapshot snapshot, ProcessEnrichment enrichment) => new()
+        {
+            Name = snapshot.Name,
+            Pid = snapshot.Pid,
+            Path = enrichment.Path,
+            ArchitectureType = enrichment.Architecture,
+            Priority = snapshot.BasePriority,
+            ThreadCount = snapshot.ThreadCount,
+            Ppid = snapshot.Ppid,
+        };
+
+        /// <summary>In-place update from a snapshot for fields known to mutate at runtime.</summary>
+        public void ApplySnapshot(ProcessSnapshot s)
+        {
+            Name = s.Name;
+            ThreadCount = s.ThreadCount;
+            Priority = s.BasePriority;
+            Ppid = s.Ppid;
+        }
+
+        /// <summary>Detached copy safe to hold across refreshes (export snapshots).</summary>
+        public Process DeepCopy() => new()
+        {
+            Name = Name,
+            Pid = Pid,
+            Path = Path,
+            ArchitectureType = ArchitectureType,
+            Priority = Priority,
+            ThreadCount = ThreadCount,
+            Ppid = Ppid,
+        };
 
         public override string ToString() => $"{Name} ({Pid})";
 

@@ -100,7 +100,7 @@ namespace TaskManager.Presentation
         {
             lock (_index)
             {
-                return _index.Values.Select(i => CopyOf(i.Process)).ToList();
+                return _index.Values.Select(i => i.Process.DeepCopy()).ToList();
             }
         }
 
@@ -285,7 +285,7 @@ namespace TaskManager.Presentation
 
                     foreach (var added in diff.Added)
                     {
-                        var process = Materialize(added, enrichedNew[added.Pid]);
+                        var process = Process.FromSnapshot(added, enrichedNew[added.Pid]);
                         _enrichment[added.Pid] = enrichedNew[added.Pid];
                         var item = new ProcessItem(process);
                         _index[added.Pid] = item;
@@ -296,42 +296,12 @@ namespace TaskManager.Presentation
                     {
                         if (_index.TryGetValue(upd.Pid, out var item))
                         {
-                            ApplySnapshot(item.Process, upd);
+                            item.Process.ApplySnapshot(upd);
                         }
                     }
                 }
             });
         }
-
-        private static Process Materialize(ProcessSnapshot s, ProcessEnrichment e) => new()
-        {
-            Name = s.Name,
-            Pid = s.Pid,
-            Path = e.Path,
-            ArchitectureType = e.Architecture,
-            Priority = s.BasePriority,
-            ThreadCount = s.ThreadCount,
-            Ppid = s.Ppid,
-        };
-
-        private static void ApplySnapshot(Process target, ProcessSnapshot s)
-        {
-            target.Name = s.Name;
-            target.ThreadCount = s.ThreadCount;
-            target.Priority = s.BasePriority;
-            target.Ppid = s.Ppid;
-        }
-
-        private static Process CopyOf(Process p) => new()
-        {
-            Name = p.Name,
-            Pid = p.Pid,
-            Path = p.Path,
-            ArchitectureType = p.ArchitectureType,
-            Priority = p.Priority,
-            ThreadCount = p.ThreadCount,
-            Ppid = p.Ppid,
-        };
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
