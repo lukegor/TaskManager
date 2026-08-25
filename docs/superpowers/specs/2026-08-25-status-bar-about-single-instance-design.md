@@ -34,7 +34,7 @@ internal sealed class SingleInstanceGuard : IDisposable
 - **Name:** `Local\TaskManager.SingleInstance` (per-session scope).
 - **Normal mode** (`waitForExistingRelease == false`, plain launches): `new Mutex(true, name, out createdNew)`; `createdNew == true` ⇒ first instance; otherwise second-instance path. The `createdNew` pattern is immune to `AbandonedMutexException` from crashed predecessors.
 - **Handoff mode** (`waitForExistingRelease == true`, passed `--await-instance` command-line argument): construct non-owning, then `WaitOne(TimeSpan.FromSeconds(10))` for the predecessor to release during restart/relaunch. `AbandonedMutexException` from a crashed predecessor counts as acquired. Timeout ⇒ fall back to second-instance behavior (best effort).
-- **Activation:** enumerate `Process.GetProcessesByName(<AssemblyName>)`, skip own PID, take the first process with `MainWindowHandle != 0`; `ShowWindow(handle, SW_RESTORE)` when iconic, then `SetForegroundWindow(handle)`. P-Invoke declarations stay in this class (or an adjacent interop static) — small, private, `[LibraryImport]`-style.
+- **Activation:** enumerate `Process.GetProcessesByName(<current executable base name without extension>)`, skip own PID, take the first process with `MainWindowHandle != 0`; `ShowWindow(handle, SW_RESTORE)` when iconic, then `SetForegroundWindow(handle)`. P-Invoke declarations stay in this class (or an adjacent interop static) — small, private, `[LibraryImport]`-style.
 - **App wiring:** guard constructed in `App.OnStartup` **before container build**, stored in a static field. Flow:
 
 ```
@@ -91,7 +91,7 @@ Manual user refreshes flow through `RefreshCoreAsync` and update diagnostics nat
 - Row 3 of `MainWindow.xaml` becomes a single-row strip: `{count} processes · every {n}s | Paused` · outcome chip (small colored dot: green Ok, gray Skipped, red Failed — localized tooltip explains each) · right-aligned elevation chip.
 - `MainWindowViewModel` forwards `LastRefresh` / `IsPollingPaused` by extending its existing `catalog.PropertyChanged` subscription block, exposes `RelaunchElevatedCommand`, and maps elevation to badge text via injected `IElevationService`.
 - Chip colors map through a small `IValueConverter` (`RefreshOutcome → Brush`) in the existing `UI/Converters` folder — brushes stay out of the VM.
-- New resx strings (EN/PL, existing x:Static pattern), indicative keys: `StatusPaused`, `StatusAdministrator`, `StatusStandard`, `StatusRelaunchAsAdmin`, `StatusOutcomeOk/Skipped/Failed` (tooltips), `HelpMenu`, `AboutMenu`.
+- New resx strings (EN/PL, existing x:Static pattern), exact keys: `StatusPaused`, `StatusAdministrator`, `StatusStandard`, `StatusRelaunchAsAdmin`, `StatusOutcomeOk/Skipped/Failed` (tooltips), `HelpMenu`, `AboutMenu`.
 
 ### Elevation service
 
@@ -110,7 +110,7 @@ Implementation computes `WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole
 - Version parsing lives in an internal static helper so it is unit-testable:
 
 ```csharp
-namespace TaskManager.Services  // location follows plan refinement
+namespace TaskManager.Services
 internal static class AboutInfo
 {
     public static string Version { get; }   // parsed once from
