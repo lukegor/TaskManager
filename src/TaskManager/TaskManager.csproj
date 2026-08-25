@@ -4,6 +4,8 @@
     <OutputType>WinExe</OutputType>
     <RootNamespace>TaskManager</RootNamespace>
     <UseWPF>true</UseWPF>
+    <!-- LibraryImport source generator emits unsafe stubs (SYSLIB1062) -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <OutputPath>$(SolutionDir)\bin\$(Configuration)</OutputPath>

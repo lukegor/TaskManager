@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Primitives;
+using TaskManager.Infrastructure;
 using TaskManager.Infrastructure.Composition;
 using TaskManager.Infrastructure.Logging;
 using TaskManager.Services.ErrorHandling;
@@ -19,9 +20,19 @@ namespace TaskManager
     public partial class App : Application
     {
         private IServiceProvider _serviceProvider = null!;
+        private static SingleInstanceGuard? _guard;
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            var awaitInstance = e.Args.Contains("--await-instance", StringComparer.Ordinal);
+            _guard = new SingleInstanceGuard(awaitInstance);
+            if (!_guard.IsFirstInstance)
+            {
+                _guard.ActivateFirstInstanceWindow();
+                Shutdown();
+                return;
+            }
+
             var serviceCollection = new ServiceCollection();
             ConfigureServices(serviceCollection);
 
@@ -65,10 +76,16 @@ namespace TaskManager
         /// </summary>
         protected override void OnExit(ExitEventArgs e)
         {
-            _serviceProvider.GetRequiredService<ILogger<App>>()
-                .LogInformation("Application exiting with code {ExitCode}", e.ApplicationExitCode);
+            // Second-instance startups exit before the container is built.
+            if (_serviceProvider is not null)
+            {
+                _serviceProvider.GetRequiredService<ILogger<App>>()
+                    .LogInformation("Application exiting with code {ExitCode}", e.ApplicationExitCode);
 
-            (_serviceProvider as IDisposable)?.Dispose();
+                (_serviceProvider as IDisposable)?.Dispose();
+            }
+
+            _guard?.Dispose();
 
             base.OnExit(e);
         }
@@ -132,27 +149,36 @@ namespace TaskManager
         internal static void Restart()
         {
             var currentExecutablePath = Environment.ProcessPath;
-            System.Diagnostics.Process.Start(currentExecutablePath!);
+            using var successor = System.Diagnostics.Process.Start(currentExecutablePath!, "--await-instance");
+            _guard?.Dispose(); // successor waits for release (handoff mode)
             Application.Current.Shutdown();
         }
 
-        /// <summary>Relaunches the app requesting elevation; UAC decline is a silent no-op.</summary>
+        /// <summary>
+        /// Relaunches the app requesting elevation. A declined UAC prompt is a silent
+        /// no-op (mutex untouched); a successful spawn hands the mutex off and exits.
+        /// Any other failure propagates to the caller's error handling.
+        /// </summary>
         internal static void RelaunchElevated()
         {
+            var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                Arguments = "--await-instance",
+            };
+
             try
             {
-                var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!)
-                {
-                    UseShellExecute = true,
-                    Verb = "runas",
-                };
                 System.Diagnostics.Process.Start(psi);
-                Application.Current.Shutdown();
             }
             catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
             {
-                // user declined elevation: stay running
+                return; // user declined elevation: stay running, still protected
             }
+
+            _guard?.Dispose();
+            Application.Current.Shutdown();
         }
     }
 }
