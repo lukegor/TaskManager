@@ -91,7 +91,8 @@ namespace TaskManager
 
             // Register Services
             services.AddSingleton<ISettingsStore, JsonSettingsStore>();
-            services.AddSingleton<ISettingsService, SettingsService>();
+            services.AddSingleton<SettingsService>();
+            services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
             services.AddSingleton<IMessageService, MessageService>();
             services.AddSingleton<IErrorHandler, UiErrorHandler>();
             services.AddSingleton<IDispatcherService, WpfDispatcherService>();
@@ -106,6 +107,7 @@ namespace TaskManager
             services.AddSingleton<DataExporterFactory>(); // services.AddTransient<DataExporterFactory>();
             services.AddTransient<DataExportViewModelFactory>();
             services.AddTransient<SetPriorityVVmFactory>();
+
 
             // Register ViewModels
             services.AddSingleton<MainWindowViewModel>();

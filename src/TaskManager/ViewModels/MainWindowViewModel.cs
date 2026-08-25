@@ -32,9 +32,6 @@ namespace TaskManager.ViewModels
         private readonly IErrorHandler _errorHandler;
         private readonly ISettingsService _settings;
 
-        // icon paths
-        // ...
-
         #region Bindings
         public int ProcessCount => _processManager.ProcessCount;
         public IList<DataType> DataTypes => Enum.GetValues<DataType>();
