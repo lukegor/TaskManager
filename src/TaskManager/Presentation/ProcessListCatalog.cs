@@ -71,12 +71,71 @@ namespace TaskManager.Presentation
             }
         }
 
+        private double _lastCompletedDurationMs;
+
+        private RefreshDiagnostics? _lastRefresh;
+        public RefreshDiagnostics? LastRefresh
+        {
+            get => _lastRefresh;
+            private set
+            {
+                if (!Equals(_lastRefresh, value))
+                {
+                    _lastRefresh = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        private bool _isPollingPaused = true; // nothing flows until polling is configured
+        public bool IsPollingPaused
+        {
+            get => _isPollingPaused;
+            private set
+            {
+                if (_isPollingPaused != value)
+                {
+                    _isPollingPaused = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
+
+        /// <summary>
+        /// Best-effort telemetry: diagnostics must never destabilize the pipeline.
+        /// A dispatcher failure during ApplyBatch lands here from the warning-catch;
+        /// re-throwing would escape SafePollingRefreshAsync's containment.
+        /// </summary>
+        private void PublishRefresh(double durationMs, RefreshOutcome outcome)
+        {
+            try
+            {
+                _dispatcher.Invoke(() =>
+                {
+                    if (outcome == RefreshOutcome.Ok)
+                    {
+                        _lastCompletedDurationMs = durationMs;
+                    }
+
+                    LastRefresh = new RefreshDiagnostics(durationMs, outcome, _timeProvider.GetLocalNow());
+                });
+            }
+            catch (Exception ex)
+            {
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(ex, "Failed to publish refresh diagnostics");
+                }
+            }
+        }
 
         public async Task InitializeAsync()
         {
             await SafePollingRefreshAsync();
             StartPolling();
+            IsPollingPaused = CurrentIntervalSeconds == 0;
         }
 
         public async Task PerformRefreshAsync(bool isUserInitiated)
@@ -158,6 +217,7 @@ namespace TaskManager.Presentation
                 _logger.LogInformation("Polling interval set to {Seconds}s", seconds);
             }
             RestartPolling(); // picks up new period; Paused stops ticking; resume starts a fresh loop
+            IsPollingPaused = seconds == 0;
         }
 
         public void StartPolling()
@@ -234,6 +294,7 @@ namespace TaskManager.Presentation
                 if (!_refreshGate.Wait(0))
                 {
                     _logger.LogDebug("Refresh skipped; previous refresh still in flight");
+                    PublishRefresh(_lastCompletedDurationMs, RefreshOutcome.Skipped);
                     return;
                 }
             }
@@ -249,6 +310,7 @@ namespace TaskManager.Presentation
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Polling refresh failed");
+                PublishRefresh(_lastCompletedDurationMs, RefreshOutcome.Failed);
             }
             finally
             {
@@ -322,6 +384,9 @@ namespace TaskManager.Presentation
             }
 
             ApplyBatch(batch.Batch, batch.Enrichments);
+
+            var totalElapsed = _timeProvider.GetElapsedTime(startTimestamp);
+            PublishRefresh(totalElapsed.TotalMilliseconds, RefreshOutcome.Ok);
         }
 
         private readonly record struct PipelineBatch(ProcessListDiff Batch, Dictionary<int, ProcessEnrichment> Enrichments);
