@@ -69,6 +69,12 @@ namespace TaskManager.Infrastructure.Logging
 
         public ILogger CreateLogger(string categoryName) => new FileLogger(this, categoryName);
 
+        /// <summary>
+        /// Blocking bridge for <see cref="IDisposable"/> teardown by DI containers.
+        /// Runs on the caller's thread (the UI thread at App.OnExit) and may wait up
+        /// to the same bounded 5 s as <see cref="DisposeAsync"/>; acceptable only on
+        /// the terminal shutdown path.
+        /// </summary>
         public void Dispose() => DisposeAsync().AsTask().GetAwaiter().GetResult();
 
         /// <summary>Completes the channel so the drain flushes pending entries (bounded wait).</summary>
@@ -90,9 +96,10 @@ namespace TaskManager.Infrastructure.Logging
             {
                 // abandon the drain: best-effort shutdown must proceed
             }
-            catch (AggregateException)
+            catch (Exception)
             {
-                // canceled or faulted drain: terminal path, nothing further to do
+                // drain faulted (e.g., stream disposal I/O): terminal path — logging
+                // failures must never propagate into application shutdown
             }
         }
 
@@ -125,7 +132,8 @@ namespace TaskManager.Infrastructure.Logging
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ObjectDisposedException)
             {
-                // stream died mid-run: stop consuming quietly; the channel absorbs further writes
+                // stream died mid-run: stop consuming quietly; the channel keeps
+                // accepting writes, which DropOldest silently evicts once saturated
             }
             finally
             {

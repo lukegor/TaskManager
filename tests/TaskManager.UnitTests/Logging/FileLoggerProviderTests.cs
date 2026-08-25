@@ -43,15 +43,23 @@ namespace TaskManager.UnitTests
         [Fact]
         public async Task Write_PersistsThroughShutdownFlush()
         {
-            // Mid-life visibility is intentionally not asserted: flush-on-idle makes it
-            // scheduling-dependent. The no-sync-I/O guarantee is structural (producer
-            // only enqueues), proven here only through the shutdown flush contract.
-            var provider = new FileLoggerProvider(_logDirectory);
-            provider.CreateLogger("Cat").LogInformation("shutdown flush marker");
+            // Volume variant: a larger buffered backlog must fully survive the
+            // bounded-wait shutdown flush. Mid-life visibility is intentionally not
+            // asserted (flush-on-idle makes it scheduling-dependent); the no-sync-I/O
+            // guarantee is structural (producer only enqueues).
+            using var provider = new FileLoggerProvider(_logDirectory);
+            var logger = provider.CreateLogger("Cat");
+
+            for (var i = 0; i < 250; i++)
+            {
+                logger.LogInformation("backlog entry {Index}", i);
+            }
 
             await provider.DisposeAsync();
 
-            ReadTodayLog().ShouldContain("shutdown flush marker");
+            var content = ReadTodayLog();
+            content.ShouldContain("backlog entry 0");
+            content.ShouldContain("backlog entry 249");
         }
 
         [Fact]
