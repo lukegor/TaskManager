@@ -33,17 +33,19 @@ namespace TaskManager.Presentation
         private readonly ProcessEnricher _enricher;
         private readonly ISettingsService _settings;
         private readonly IProcessOperations _processOps;
+        private readonly TimeProvider _timeProvider;
         private readonly ILogger<ProcessListCatalog> _logger;
 
         public ProcessListCatalog(IDispatcherService dispatcher, ISystemProcessEnumerator enumerator,
             ProcessEnricher enricher, ISettingsService settings, IProcessOperations processOps,
-            ILogger<ProcessListCatalog> logger)
+            TimeProvider timeProvider, ILogger<ProcessListCatalog> logger)
         {
             _dispatcher = dispatcher;
             _enumerator = enumerator;
             _enricher = enricher;
             _settings = settings;
             _processOps = processOps;
+            _timeProvider = timeProvider;
             _logger = logger;
 
             Items = new ReadOnlyObservableCollection<ProcessItem>(_items);
@@ -181,7 +183,7 @@ namespace TaskManager.Presentation
                     return; // paused: idle until the next settings change starts a fresh loop
                 }
 
-                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds));
+                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds), _timeProvider);
                 while (await timer.WaitForNextTickAsync(ct))
                 {
                     await SafePollingRefreshAsync();

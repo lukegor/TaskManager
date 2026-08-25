@@ -23,6 +23,7 @@ namespace TaskManager.Infrastructure.Composition
             services.AddSingleton<IProcessOperations>(sp => sp.GetRequiredService<ProcessOperationsService>());
             services.AddSingleton<ProcessListCatalog>();
             services.AddSingleton<IProcessListCatalog>(sp => sp.GetRequiredService<ProcessListCatalog>());
+            services.AddSingleton(TimeProvider.System);
             return services;
         }
     }

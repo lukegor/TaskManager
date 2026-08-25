@@ -5,8 +5,9 @@ using TaskManager.Abstractions;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Primitives;
-using TaskManager.Domain.Services;
+using Microsoft.Extensions.Time.Testing;
 using TaskManager.Presentation;
+using TaskManager.UnitTests.TestSupport;
 using IDispatcherService = TaskManager.Abstractions.IDispatcherService;
 using ProcessPriorityClass = System.Diagnostics.ProcessPriorityClass;
 
@@ -43,6 +44,7 @@ namespace TaskManager.UnitTests.Presentation
                 new CountingEnricher(),
                 _settings,
                 _ops,
+                new FakeTimeProvider(),
                 NullLogger<ProcessListCatalog>.Instance);
         }
 
@@ -51,7 +53,7 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task FirstRefresh_AddsEverythingFromSnapshot()
         {
-            _enumerator.Queue(Snap(1, "alpha"), Snap(2, "beta"));
+            _enumerator.Queue(ProcessFakes.Snap(1, "alpha"), ProcessFakes.Snap(2, "beta"));
 
             await _catalog.LoadForTestAsync();
 
@@ -62,13 +64,13 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task SecondRefresh_UpdatesExistingInstance_InPlace_AndRaisesFieldNotification()
         {
-            _enumerator.Queue(Snap(1, "alpha", threadCount: 3));
+            _enumerator.Queue(ProcessFakes.Snap(1, "alpha", threadCount: 3));
             await _catalog.LoadForTestAsync();
             var original = _catalog.Items.Single();
             var notified = new List<string>();
             original.Process.PropertyChanged += (_, e) => notified.Add(e.PropertyName!);
 
-            _enumerator.Queue(Snap(1, "alpha", threadCount: 7));
+            _enumerator.Queue(ProcessFakes.Snap(1, "alpha", threadCount: 7));
             await _catalog.SafePollingRefreshAsync();
 
             _catalog.Items.ShouldHaveSingleItem().ShouldBe(original); // same instance -> selection survives
@@ -79,10 +81,10 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task SecondRefresh_RemovesVanished_AndAddsNew()
         {
-            _enumerator.Queue(Snap(1), Snap(2));
+            _enumerator.Queue(ProcessFakes.Snap(1), ProcessFakes.Snap(2));
             await _catalog.LoadForTestAsync();
 
-            _enumerator.Queue(Snap(2), Snap(3));
+            _enumerator.Queue(ProcessFakes.Snap(2), ProcessFakes.Snap(3));
             await _catalog.SafePollingRefreshAsync();
 
             _catalog.Items.Select(i => i.Process.Pid).ShouldBe(new int?[] { 2, 3 });
@@ -95,15 +97,16 @@ namespace TaskManager.UnitTests.Presentation
             var enricher = new CountingEnricher();
             var catalog = new ProcessListCatalog(
                 _dispatcher, enumerator, enricher, _settings, _ops,
+                new FakeTimeProvider(),
                 NullLogger<ProcessListCatalog>.Instance);
 
-            enumerator.Queue(Snap(7));
+            enumerator.Queue(ProcessFakes.Snap(7));
             await catalog.LoadForTestAsync();
 
             enumerator.Queue(); // PID 7 exits
             await catalog.SafePollingRefreshAsync();
 
-            enumerator.Queue(Snap(7)); // PID reused by another image
+            enumerator.Queue(ProcessFakes.Snap(7)); // PID reused by another image
             await catalog.SafePollingRefreshAsync();
 
             enricher.Calls.ShouldBe(2); // cache entry evicted, not replayed
@@ -132,7 +135,7 @@ namespace TaskManager.UnitTests.Presentation
         {
             var releaseFirst = new TaskCompletionSource();
             _enumerator.Queue(() => releaseFirst.Task.ContinueWith(_ => Array.Empty<ProcessSnapshot>()).Result);
-            _enumerator.Queue(Snap(1));
+            _enumerator.Queue(ProcessFakes.Snap(1));
 
             var first = _catalog.SafePollingRefreshAsync();
             var manual = _catalog.PerformRefreshAsync(isUserInitiated: true);
@@ -164,8 +167,8 @@ namespace TaskManager.UnitTests.Presentation
             throwingDispatcher.When(d => d.Invoke(Arg.Any<Action>()))
                 .Do(_ => throw new InvalidOperationException("dispatcher died"));
             var catalog = new ProcessListCatalog(
-                throwingDispatcher, ScriptedEnumerator.Of(SelfSnap()), new CountingEnricher(),
-                _settings, _ops, NullLogger<ProcessListCatalog>.Instance);
+                throwingDispatcher, ScriptedEnumerator.Of(ProcessFakes.SelfSnap()), new CountingEnricher(),
+                _settings, _ops, new FakeTimeProvider(), NullLogger<ProcessListCatalog>.Instance);
 
             await catalog.SafePollingRefreshAsync(); // must not throw
         }
@@ -175,7 +178,7 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task ExportSnapshot_IsImmuneToLaterStoreChanges()
         {
-            _enumerator.Queue(Snap(1, "one"), Snap(2, "two"));
+            _enumerator.Queue(ProcessFakes.Snap(1, "one"), ProcessFakes.Snap(2, "two"));
             await _catalog.LoadForTestAsync();
 
             var snapshot = _catalog.SnapshotForExport();
@@ -219,7 +222,7 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task SetPriorityAsync_SuccessfulPids_AreWrittenBackIntoStoredRows()
         {
-            _enumerator.Queue(Snap(9));
+            _enumerator.Queue(ProcessFakes.Snap(9));
             await _catalog.LoadForTestAsync();
 
             _ops.SetPriority(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>())
@@ -234,7 +237,7 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task SetPriorityAsync_FailedPids_AreNotWrittenBack()
         {
-            _enumerator.Queue(Snap(9));
+            _enumerator.Queue(ProcessFakes.Snap(9));
             await _catalog.LoadForTestAsync();
 
             _ops.SetPriority(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>())
@@ -249,61 +252,5 @@ namespace TaskManager.UnitTests.Presentation
             _catalog.Items.Single().Process.Priority.ShouldNotBe(6); // untouched
         }
 
-        // ---- helpers ----
-
-        private static ProcessSnapshot SelfSnap() =>
-            new(Environment.ProcessId, "self", ThreadCount: 1, Ppid: null, BasePriority: 8);
-
-        private static ProcessSnapshot Snap(int pid, string name = "n", int threadCount = 1) =>
-            new(pid, name, ThreadCount: threadCount, Ppid: 4, BasePriority: 8);
-
-        private sealed class ScriptedEnumerator : ISystemProcessEnumerator
-        {
-            private readonly Queue<Func<IReadOnlyList<ProcessSnapshot>>> _scripts = new();
-            public int CallCount { get; private set; }
-            private Exception? _throwOnce;
-
-            public static ScriptedEnumerator Of(params ProcessSnapshot[] items)
-            {
-                var e = new ScriptedEnumerator();
-                e.Queue(items);
-                return e;
-            }
-
-            public void Queue(params ProcessSnapshot[] items) => Queue(() => items);
-
-            public void Queue(Func<IReadOnlyList<ProcessSnapshot>> script) => _scripts.Enqueue(script);
-
-            public void ThrowNext(Exception ex) => _throwOnce = ex;
-
-            public IReadOnlyList<ProcessSnapshot> Capture()
-            {
-                CallCount++;
-                if (_throwOnce is not null)
-                {
-                    var ex = _throwOnce;
-                    _throwOnce = null;
-                    throw ex;
-                }
-
-                return _scripts.Dequeue()();
-            }
-        }
-
-        private sealed class CountingEnricher : ProcessEnricher
-        {
-            public int Calls { get; private set; }
-
-            public CountingEnricher() : base(NullLogger<ProcessEnricher>.Instance)
-            {
-            }
-
-            public override bool TryEnrich(int pid, out ProcessEnrichment enrichment)
-            {
-                Calls++;
-                enrichment = new ProcessEnrichment($@"C:\fake-{pid}-{Calls}.exe", ArchitectureType._64BIT);
-                return true;
-            }
-        }
     }
 }

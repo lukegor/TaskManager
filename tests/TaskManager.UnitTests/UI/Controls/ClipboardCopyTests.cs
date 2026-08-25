@@ -93,7 +93,7 @@ namespace TaskManager.UnitTests.UI.Controls
         }
 
         [WpfFact]
-        public void CopyWithoutFormatter_FallsBackToToString()
+        public async Task CopyWithoutFormatter_FallsBackToToString()
         {
             List<ProcessItem> items = GridTestHost.CreateItems(("alpha", 10), ("beta", 20));
             BetterDataGrid grid = GridTestHost.CreateGrid(items);
@@ -102,7 +102,15 @@ namespace TaskManager.UnitTests.UI.Controls
 
             BetterDataGrid.CopyRowsCommand.Execute(null, grid);
 
-            GetTextWithRetry().ShouldBe(items[1].ToString());
+            string expected = items[1].ToString();
+            string actual = string.Empty;
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            while (DateTime.UtcNow < deadline && (actual = GetTextWithRetry()) != expected)
+            {
+                await Task.Delay(25);
+            }
+
+            actual.ShouldBe(expected);
         }
     }
 }
