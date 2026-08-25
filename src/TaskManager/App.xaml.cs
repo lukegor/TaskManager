@@ -3,16 +3,11 @@ using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
-using TaskManager.Abstractions;
-using TaskManager.Domain.Services;
-using TaskManager.Services;
-using TaskManager.Infrastructure.Logging;
-using TaskManager.Infrastructure.Settings;
-using TaskManager.Presentation;
-using TaskManager.Services.ErrorHandling;
-using TaskManager.Domain.Services.DataExport;
-using TaskManager.UI.Views;
 using TaskManager.Domain.Primitives;
+using TaskManager.Infrastructure.Composition;
+using TaskManager.Infrastructure.Logging;
+using TaskManager.Services.ErrorHandling;
+using TaskManager.UI.Views;
 using TaskManager.ViewModels;
 
 namespace TaskManager
@@ -90,43 +85,8 @@ namespace TaskManager
                 logging.AddProvider(new FileLoggerProvider());
             });
 
-            // Register Services
-            services.AddSingleton<ISettingsStore, JsonSettingsStore>();
-            services.AddSingleton<SettingsService>();
-            services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
-            services.AddSingleton<IMessageService, MessageService>();
-            services.AddSingleton<IErrorHandler, UiErrorHandler>();
-            services.AddSingleton<IDispatcherService, WpfDispatcherService>();
-            services.AddSingleton<ISystemProcessEnumerator, NtSystemProcessEnumerator>();
-            services.AddSingleton<ProcessEnricher>();
-
-            services.AddSingleton<ProcessOperationsService>();
-            services.AddSingleton<IProcessOperations>(sp => sp.GetRequiredService<ProcessOperationsService>());
-            services.AddSingleton<ProcessListCatalog>();
-            services.AddSingleton<IProcessListCatalog>(sp => sp.GetRequiredService<ProcessListCatalog>());
-            services.AddSingleton<IFolderPicker, FolderPicker>();
-            services.AddSingleton<Func<DataType, BaseDataExporter>>(sp => dataType => dataType switch
-            {
-                DataType.Csv => new CsvExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
-                DataType.Txt => new TxtExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
-                DataType.Xlsx => new ExcelExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
-                DataType.Json => new JsonExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
-                DataType.Xml => new XmlExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
-                _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null),
-            });
-            services.AddSingleton<IWindowService, WindowService>();
-
-            // Register ViewModels
-            services.AddSingleton<MainWindowViewModel>();
-
-            // Register Views
-            services.AddSingleton<MainWindow>(sp =>
-            {
-                return new MainWindow
-                {
-                    DataContext = sp.GetRequiredService<MainWindowViewModel>()
-                };
-            });
+            services.AddCoreServices();
+            services.AddUiServices();
         }
 
         private void LaunchGUI()
@@ -137,9 +97,6 @@ namespace TaskManager
             // Single startup point: initial load + polling start. Failures route through
             // IErrorHandler.GuardAsync inside InitializeCommand and are logged, not fatal.
             _ = _serviceProvider.GetRequiredService<MainWindowViewModel>().InitializeCommand.ExecuteAsync(null);
-        }
-
-        private void Application_Exit(object sender, ExitEventArgs e) {
         }
 
         internal static void Restart()
