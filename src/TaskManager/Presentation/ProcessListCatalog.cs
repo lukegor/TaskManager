@@ -127,7 +127,7 @@ namespace TaskManager.Presentation
         }
 
         /// <summary>Updates priority in the index after a successful OS operation.</summary>
-        public void WritebackPriority(int pid, int newPriority)
+        private void WritebackPriority(int pid, int newPriority)
         {
             lock (_index)
             {

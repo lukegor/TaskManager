@@ -15,30 +15,23 @@ namespace TaskManager.Domain.Services
             _logger = logger;
         }
 
-        public ProcessOpSummary TerminateProcesses(
-            IReadOnlyCollection<int> pids,
-            Action<int>? onSuccess = null)
+        public ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> pids)
         {
             return ExecutePerPid(pids, pid =>
             {
                 using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.Kill();
                 _logger.LogDebug("Process {Pid} was terminated", pid);
-                onSuccess?.Invoke(pid);
             });
         }
 
-        public ProcessOpSummary SetPriority(
-            IReadOnlyCollection<int> pids,
-            ProcessPriorityClass priority,
-            Action<int>? onSuccess = null)
+        public ProcessOpSummary SetPriority(IReadOnlyCollection<int> pids, ProcessPriorityClass priority)
         {
             return ExecutePerPid(pids, pid =>
             {
                 using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.PriorityClass = priority;
                 _logger.LogDebug("Process {Pid} priority set to {Priority}", pid, priority);
-                onSuccess?.Invoke(pid);
             });
         }
 

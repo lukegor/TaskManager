@@ -9,8 +9,8 @@ namespace TaskManager.Domain.Abstractions
     /// </summary>
     public interface IProcessOperations
     {
-        ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> pids, Action<int>? onSuccess = null);
+        ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> pids);
 
-        ProcessOpSummary SetPriority(IReadOnlyCollection<int> pids, ProcessPriorityClass priority, Action<int>? onSuccess = null);
+        ProcessOpSummary SetPriority(IReadOnlyCollection<int> pids, ProcessPriorityClass priority);
     }
 }

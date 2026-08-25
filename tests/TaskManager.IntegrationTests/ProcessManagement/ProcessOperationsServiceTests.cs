@@ -12,7 +12,7 @@ namespace TaskManager.IntegrationTests.ProcessManagement
     /// <summary>
     /// Live-OS behavior contract of ProcessOperationsService: real priority changes land,
     /// expected OS rejections (stale/exited PIDs, access denied) are reported as data and
-    /// never abort the batch, onSuccess fires only for succeeded PIDs.
+    /// never abort the batch.
     /// </summary>
     public class ProcessOperationsServiceTests : IDisposable
     {
@@ -26,16 +26,13 @@ namespace TaskManager.IntegrationTests.ProcessManagement
         public void Dispose() => _self.PriorityClass = _originalPriority;
 
         [Fact]
-        public void SetPriority_UpdatesRealProcess_AndFiresOnSuccess()
+        public void SetPriority_UpdatesRealProcess_AndReportsSuccessInSummary()
         {
-            int? succeededPid = null;
-
-            var summary = _ops.SetPriority([_self.Id], ProcessPriorityClass.AboveNormal,
-                pid => succeededPid = pid);
+            var summary = _ops.SetPriority([_self.Id], ProcessPriorityClass.AboveNormal);
 
             _self.Refresh();
             _self.PriorityClass.ShouldBe(ProcessPriorityClass.AboveNormal);
-            succeededPid.ShouldBe(_self.Id);
+            summary.SucceededPids.ShouldBe([_self.Id]);
             summary.Failures.ShouldBeEmpty();
         }
 
@@ -55,15 +52,13 @@ namespace TaskManager.IntegrationTests.ProcessManagement
         }
 
         [Fact]
-        public void SetPriority_OnSuccess_FiresOnlyForSucceededPids()
+        public void SetPriority_MixedBatch_SucceededPidsExcludeFailures()
         {
             int stalePid = GetUnusedPid();
-            var writebacks = new List<int>();
 
-            var summary = _ops.SetPriority([stalePid, _self.Id], ProcessPriorityClass.Idle,
-                writebacks.Add);
+            var summary = _ops.SetPriority([stalePid, _self.Id], ProcessPriorityClass.Idle);
 
-            writebacks.ShouldBe([_self.Id]);
+            summary.SucceededPids.ShouldBe([_self.Id]); // the writeback contract consumes this list
             summary.Failures.ShouldHaveSingleItem();
         }
 
