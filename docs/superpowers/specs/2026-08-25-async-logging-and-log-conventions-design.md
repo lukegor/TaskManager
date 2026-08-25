@@ -15,7 +15,7 @@
 
 | Question | Decision |
 |---|---|
-| Overflow behavior | Never block producers; drop oldest entries (bounded channel, DropOldest), count drops, emit one recovery notice |
+| Overflow behavior | Never block producers; drop oldest entries (bounded channel, DropOldest); detect saturation episodes via enqueue/drain totals and emit one bounded recovery notice per episode |
 | L2 extent | Missing structured log statements in code + "Logging" conventions section in README (no standalone doc) |
 | Dependencies | Zero new packages (Channel is BCL); L2 tests use a hand-rolled logger spy instead of Microsoft.Extensions.Diagnostics.Testing |
 | LoggerMessage source-gen | Stays deferred (CA1848 waiver unchanged); plain `ILogger` extension methods |
@@ -63,7 +63,7 @@ public sealed class FileLoggerProvider : ILoggerProvider, IAsyncDisposable
 }
 ```
 
-State: `_channel`/`_reader`, `_drainTask`, `_droppedCount`, `_broken` (volatile bool), `_disposed`, current `StreamWriter` + its open date, `TimeProvider`. The drain task starts in the constructor and runs until the channel completes.
+State: `_channel`/`_reader`, `_drainTask`, `_disposed`, enqueue/drain totals (for saturation detection), current `StreamWriter` + its open date, `TimeProvider`. The drain task starts in the constructor and runs until the channel completes. There is deliberately NO `_broken` flag: any I/O fault escapes `Append`, is caught by the drain loop's filtered catch, and the loop simply exits — the channel then absorbs writes that are never consumed. Same observable behavior, fewer moving parts.
 
 Producer path (`FileLogger.Log` → provider): format via the existing formatter contract, build `LogEntry`, `TryWrite`. No locks anywhere on the producer side.
 
@@ -72,23 +72,22 @@ Drain loop (`DrainAsync`, owns all file I/O):
 ```
 try {
   await foreach entry in _reader.ReadAllAsync():
-     if (_broken) break;
      Append(entry);                      // rollover check inside
-     ReportDroppedIfAny();               // see below
+     ReportOverflowIfRecovered();        // see below
      if (_reader.Count == 0) await stream.FlushAsync();
-} catch (IOException / UnauthorizedAccessException) { _broken = true; }
+} catch (IOException / UnauthorizedAccessException) { /* drain exits; channel absorbs further writes */ }
 finally { final flush if possible; dispose stream; }
 ```
 
 - **Rollover:** compare entry's local date to open file's date; on change close stream, open new daily file, run retention cleanup (moved from constructor-only to every rollover).
-- **Drop reporting:** when the drain observes `_droppedCount > 0` while appending (first entry processed after drops occurred), it appends one direct line `[Warning] FileLoggerProvider: {n} log entries dropped due to buffer overflow.` and resets the counter (direct stream write — deliberately not routed through the channel).
-- **Stream failure:** set `_broken`, exit loop quietly; subsequent `TryWrite` calls still succeed into the channel but are discarded by an early-exiting drain. Logging never throws, never crashes the app.
+- **Overflow detection & reporting:** `DropOldest` evicts silently inside the channel, so exact drop counting is impossible. The provider instead tracks enqueue/drain totals: when backlog (`enqueued − drained`) reaches capacity, a saturation episode has occurred; the drain records the target total and, once drained past it (queue recovered), appends one direct line `[Warning] FileLoggerProvider: log buffer overflowed; up to {n} entries were dropped.` (n = worst-case eviction bound at report time), then re-arms for future episodes. One notice per episode.
+- **Stream failure:** filtered catch ends the drain quietly; subsequent `TryWrite` calls still succeed into the unconsumed channel. Logging never throws, never crashes the app.
 
 Shutdown:
 
 - `DisposeAsync()`: idempotent guard → `_writer.TryComplete()` → `await _drainTask.WaitAsync(TimeSpan.FromSeconds(5))` (timeout tolerated; AggregateException from cancel/fault swallowed) → done (stream disposal owned by task's `finally`).
 - `Dispose()` (sync, required by `ILoggerProvider`): `DisposeAsync().AsTask().GetAwaiter().GetResult()` — blocking is acceptable on the terminal path already wired through `App.OnExit`.
-- `internal Task FlushAsync()`: test seam — completes when everything enqueued so far has been written and flushed, without tearing down the provider. Implemented by awaiting a `TaskCompletionSource` that the drain task completes at each flush point and rotates afterward.
+- There is deliberately NO live `FlushAsync()` seam: every test assertion (including "buffered content not visible before shutdown") is deterministic through `DisposeAsync` alone, and removing the live seam eliminates the design's only racy piece. If D2 later needs mid-life flushing, it can be added safely then.
 
 Wiring: `App.ConfigureServices` keeps `new FileLoggerProvider()` (parameterless); no DI change needed.
 
@@ -104,19 +103,21 @@ Wiring: `App.ConfigureServices` keeps `new FileLoggerProvider()` (parameterless)
 
 ## 5. L1 — Testing
 
-Existing sync-semantics tests rewritten (log → `await provider.FlushAsync()` → assert identical content/format as today):
+All assertions are `DisposeAsync`-centered (deterministic; no live-flush seam):
 
-- `Write_AppendsFormattedMessageToDailyFile`
-- `Write_IncludesExceptionDetails`
-- Retention test: unchanged behavior, may keep as-is.
+Rewritten existing tests:
+
+- `Write_AppendsFormattedMessageToDailyFile`, `Write_IncludesExceptionDetails` → log → `await provider.DisposeAsync()` → assert identical content/format as today.
+- Retention-at-construction test: unchanged.
 
 New tests:
 
-1. `Write_EntryNotVisibleBeforeFlush` — file absent immediately after Log; present after FlushAsync. Proves off-thread handoff.
-2. `DisposeAsync_FlushesPendingEntries` — pending entries survive shutdown without explicit flush.
-3. `Rollover_CreatesNewDailyFile_AndRunsRetention` — `FakeTimeProvider` advanced across midnight; new file created, stale files deleted.
-4. `Overflow_DropsOldest_AndReportsExactlyOneNotice` — small-capacity internal ctor; burst past capacity; oldest lost, exactly one notice line after recovery.
-5. `Drain_SurvivesStreamFailure` — locked/unwritable target forces write errors; no exception escapes any API; provider disposable afterward.
+1. `Write_BufferedContentNotVisibleBeforeDispose` — after Log, the file (if already created) does not contain the message; after `DisposeAsync` it does. Proves off-thread buffered handoff (the backlog acceptance criterion).
+2. `Dispose_FlushesPendingEntries` — multiple entries across categories survive shutdown without any explicit flush call.
+3. `Dispose_IsIdempotent` — double dispose throws nothing, single drain outcome.
+4. `Rollover_CreatesNewDailyFile_AndRunsRetention` — `FakeTimeProvider` advanced across midnight between entries; second file created, stale files deleted at rollover.
+5. `Overflow_ReportsExactlyOneNotice_PerEpisode` — small-capacity internal ctor; burst past capacity; oldest entries lost; exactly one overflow notice after recovery; a second burst produces exactly one more.
+6. `Drain_SurvivesStreamFailure` — locked target directory forces write errors; no exception escapes any API; provider disposes cleanly.
 
 ## 6. L2 — Code Changes
 
@@ -177,6 +178,6 @@ Content outline (placed after "Test"):
 1. No log call ever performs synchronous disk I/O on the calling thread (structural: producer only enqueues).
 2. Pending entries are durable across normal shutdown (flush-on-dispose verified by test).
 3. Daily rollover and retention work under a controllable clock; line format byte-compatible with today's.
-4. Burst overload degrades by dropping old entries, never blocking, with exactly one recovery notice.
+4. Burst overload degrades by dropping old entries, never blocking, with exactly one bounded notice per saturation episode.
 5. Every batch process operation produces one structured Information summary; every refresh tick produces a guarded Debug trace with duration and add/remove/update counts.
 6. README documents the conventions; full suite green under warnings-as-errors; zero new package dependencies.
