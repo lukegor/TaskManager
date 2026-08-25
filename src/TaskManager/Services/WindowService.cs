@@ -34,37 +34,52 @@ namespace TaskManager.Services
             _folderPicker = folderPicker;
         }
 
-        public void ShowSettings()
-        {
-            var window = new SettingsWindow
-            {
-                DataContext = new SettingsWindowViewModel(_settings, _errorHandler)
-            };
-            window.ShowDialog();
-        }
+        public void ShowSettings() => CreateSettingsDialog().Window.ShowDialog();
 
-        public void ShowExport(IReadOnlyList<Process> processes)
-        {
-            var vm = new DataExportWindowViewModel(_messages, _errorHandler, _exporterFactory, _folderPicker, processes);
-            ShowDialogWithCloseRelay(new DataExportWindow(), vm);
-        }
+        public void ShowExport(IReadOnlyList<Process> processes) =>
+            CreateExportDialog(processes).Window.ShowDialog();
 
         public bool ShowSetPriority(IReadOnlyCollection<int> pids)
         {
-            var vm = new SetPriorityWindowViewModel(_messages, _catalog, pids, _errorHandler);
-            ShowDialogWithCloseRelay(new SetPriorityWindow(), vm);
-            return vm.Confirmed;
+            var dialog = CreatePriorityDialog(pids);
+            dialog.Window.ShowDialog();
+            return dialog.ViewModel.Confirmed;
         }
 
-        private static void ShowDialogWithCloseRelay(System.Windows.Window window, ObservableObject vm)
+        internal (SettingsWindow Window, SettingsWindowViewModel ViewModel) CreateSettingsDialog()
         {
-            window.DataContext = vm;
-            if (vm is IRequestCloseObservable closable)
+            var viewModel = new SettingsWindowViewModel(_settings, _errorHandler);
+            var window = new SettingsWindow { DataContext = viewModel };
+            return (window, viewModel);
+        }
+
+        internal (DataExportWindow Window, DataExportWindowViewModel ViewModel) CreateExportDialog(
+            IReadOnlyList<Process> processes)
+        {
+            var viewModel = new DataExportWindowViewModel(
+                _messages, _errorHandler, _exporterFactory, _folderPicker, processes);
+            var window = new DataExportWindow { DataContext = viewModel };
+            AttachCloseRelay(window, viewModel);
+            return (window, viewModel);
+        }
+
+        internal (SetPriorityWindow Window, SetPriorityWindowViewModel ViewModel) CreatePriorityDialog(
+            IReadOnlyCollection<int> pids)
+        {
+            var viewModel = new SetPriorityWindowViewModel(_messages, _catalog, pids, _errorHandler);
+            var window = new SetPriorityWindow { DataContext = viewModel };
+            AttachCloseRelay(window, viewModel);
+            return (window, viewModel);
+        }
+
+        private static void AttachCloseRelay(System.Windows.Window window, object viewModel)
+        {
+            // only dialog VMs that own their close decision raise RequestClose
+            // (e.g. the settings window is closed by its own Save/Cancel buttons)
+            if (viewModel is IRequestCloseObservable closable)
             {
                 closable.RequestClose += (_, _) => window.Close();
             }
-
-            window.ShowDialog();
         }
     }
 }
