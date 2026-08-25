@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Time.Testing;
 using TaskManager.Infrastructure.Logging;
 
 namespace TaskManager.UnitTests
@@ -100,10 +101,112 @@ namespace TaskManager.UnitTests
             File.Exists(staleLog).ShouldBeFalse();
         }
 
+        [Fact]
+        public async Task Rollover_CreatesNewDailyFile_AndRunsRetention()
+        {
+            // Offset taken from the local zone so the wall-clock date really is
+            // Aug 25 everywhere: Append names files by Timestamp.LocalDateTime.
+            var time = new FakeTimeProvider(new DateTimeOffset(
+                2026, 8, 25, 23, 59, 50, TimeZoneInfo.Local.GetUtcOffset(new DateTime(2026, 8, 25))));
+            using var provider = new FileLoggerProvider(_logDirectory, time);
+            var logger = provider.CreateLogger("Cat");
+            logger.LogInformation("before midnight");
+
+            // Stale file created AFTER construction so its deletion can only be the work
+            // of the rollover-time retention pass, not the constructor's. Retention is
+            // last-write-based, so the mtime must be backdated to qualify as expired.
+            var stale = Path.Combine(_logDirectory, "tm-20200101.log");
+            File.WriteAllText(stale, "old");
+            File.SetLastWriteTime(stale, time.GetLocalNow().LocalDateTime.AddDays(-30));
+
+            time.Advance(TimeSpan.FromSeconds(20)); // crosses midnight -> 2026-08-26
+            logger.LogInformation("after midnight");
+            await provider.DisposeAsync();
+
+            File.Exists(Path.Combine(_logDirectory, "tm-20260825.log")).ShouldBeTrue();
+            var nextDay = Path.Combine(_logDirectory, "tm-20260826.log");
+            File.Exists(nextDay).ShouldBeTrue();
+            File.ReadAllText(nextDay).ShouldContain("after midnight");
+            File.Exists(stale).ShouldBeFalse();
+        }
+
+        [Fact]
+        public async Task Overflow_ReportsExactlyOneNotice_PerEpisode()
+        {
+            const int capacity = 64;
+            using var provider = new FileLoggerProvider(_logDirectory, TimeProvider.System, capacity);
+            var logger = provider.CreateLogger("Cat");
+
+            Burst(logger, capacity * 4);
+            await WaitForAsync(() => ReadTodayLog().Contains("log buffer overflowed"));
+
+            // Second episode after the queue visibly recovered: exactly one more notice.
+            Burst(logger, capacity * 4);
+            await WaitForAsync(() => CountOccurrences(ReadTodayLog(), "log buffer overflowed") >= 2);
+
+            await provider.DisposeAsync(); // closes the stream so the file can be read whole
+
+            var content = ReadTodayLog();
+            CountOccurrences(content, "log buffer overflowed").ShouldBe(2);
+            content.ShouldNotContain("burst 0 ");  // oldest entries were the ones dropped
+            content.ShouldContain($"burst {(capacity * 4) - 1}"); // newest survived
+        }
+
+        [Fact]
+        public async Task Drain_SurvivesStreamFailure()
+        {
+            Directory.CreateDirectory(_logDirectory);
+            using var lockHandle = File.Open(
+                Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log"),
+                FileMode.OpenOrCreate, FileAccess.Read, FileShare.None); // denies any writer
+
+            using var provider = new FileLoggerProvider(_logDirectory);
+            provider.CreateLogger("Cat").LogInformation("never lands");
+
+            await provider.DisposeAsync(); // must not throw despite the unwritable target
+        }
+
+        private static void Burst(Microsoft.Extensions.Logging.ILogger logger, int count)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                logger.LogInformation("burst {Index}", i);
+            }
+        }
+
+        private static async Task WaitForAsync(Func<bool> condition)
+        {
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            while (!condition() && DateTime.UtcNow < deadline)
+            {
+                await Task.Delay(50);
+            }
+        }
+
+        private static int CountOccurrences(string text, string needle)
+        {
+            var count = 0;
+            var index = 0;
+            while ((index = text.IndexOf(needle, index, StringComparison.Ordinal)) >= 0)
+            {
+                count++;
+                index += needle.Length;
+            }
+
+            return count;
+        }
+
         private string ReadTodayLog()
         {
             var path = Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log");
-            return File.Exists(path) ? File.ReadAllText(path) : string.Empty;
+            try
+            {
+                return File.Exists(path) ? File.ReadAllText(path) : string.Empty;
+            }
+            catch (IOException)
+            {
+                return string.Empty; // mid-drain poll: writer holds the file; next tick retries
+            }
         }
 
         public void Dispose()
