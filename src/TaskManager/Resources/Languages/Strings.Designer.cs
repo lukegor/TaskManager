@@ -538,5 +538,131 @@ namespace TaskManager.Resources.Languages {
                 return ResourceManager.GetString("ExportFailedInvalidPath", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to every {0} s..
+        /// </summary>
+        public static string StatusEverySeconds {
+            get {
+                return ResourceManager.GetString("StatusEverySeconds", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Paused.
+        /// </summary>
+        public static string StatusPaused {
+            get {
+                return ResourceManager.GetString("StatusPaused", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Last refresh completed.
+        /// </summary>
+        public static string StatusOutcomeOk {
+            get {
+                return ResourceManager.GetString("StatusOutcomeOk", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Previous refresh still running.
+        /// </summary>
+        public static string StatusOutcomeSkipped {
+            get {
+                return ResourceManager.GetString("StatusOutcomeSkipped", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Last refresh failed.
+        /// </summary>
+        public static string StatusOutcomeFailed {
+            get {
+                return ResourceManager.GetString("StatusOutcomeFailed", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Administrator.
+        /// </summary>
+        public static string StatusAdministrator {
+            get {
+                return ResourceManager.GetString("StatusAdministrator", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Standard user.
+        /// </summary>
+        public static string StatusStandard {
+            get {
+                return ResourceManager.GetString("StatusStandard", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Relaunch as administrator.
+        /// </summary>
+        public static string StatusRelaunchAsAdmin {
+            get {
+                return ResourceManager.GetString("StatusRelaunchAsAdmin", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Help.
+        /// </summary>
+        public static string HelpMenu {
+            get {
+                return ResourceManager.GetString("HelpMenu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to About.
+        /// </summary>
+        public static string AboutMenu {
+            get {
+                return ResourceManager.GetString("AboutMenu", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Version.
+        /// </summary>
+        public static string AboutVersionLabel {
+            get {
+                return ResourceManager.GetString("AboutVersionLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Commit.
+        /// </summary>
+        public static string AboutCommitLabel {
+            get {
+                return ResourceManager.GetString("AboutCommitLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to License: see LICENSE.txt.
+        /// </summary>
+        public static string AboutLicenseLabel {
+            get {
+                return ResourceManager.GetString("AboutLicenseLabel", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        ///   Looks up a localized string similar to OK.
+        /// </summary>
+        public static string AboutOkButton {
+            get {
+                return ResourceManager.GetString("AboutOkButton", resourceCulture);
+            }
+        }
     }
 }

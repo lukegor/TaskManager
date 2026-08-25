@@ -11,12 +11,14 @@
 		xmlns:controls="clr-namespace:TaskManager.UI.Controls"
 		xmlns:b="clr-namespace:TaskManager.UI.Behaviors"
         xmlns:fmt="clr-namespace:TaskManager.UI.Formatters"
+        xmlns:converters="clr-namespace:TaskManager.UI.Converters"
         xmlns:resx="clr-namespace:TaskManager.Resources.Languages"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800"
         >
 
     <Window.Resources>
+        <converters:RefreshOutcomeToBrushConverter x:Key="OutcomeToBrush"/>
     </Window.Resources>
 
 	<Grid>
@@ -119,13 +121,44 @@
 			</TabControl>
 		</DockPanel>
 
-        <TextBlock Grid.Row="3" Margin="5,0,0,0">
-            <TextBlock.Text>
-                <MultiBinding StringFormat="{}{0}: {1}">
-                    <Binding Source="{x:Static resx:Strings.Processes}" />
-                    <Binding Path="ProcessCount" />
-                </MultiBinding>
-            </TextBlock.Text>
-        </TextBlock>
+        <DockPanel Grid.Row="3" Margin="5,0,5,0" LastChildFill="False">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock>
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{}{0}: {1}">
+                            <Binding Source="{x:Static resx:Strings.Processes}" />
+                            <Binding Path="ProcessCount" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+                <TextBlock Margin="12,0,0,0" Text="{Binding IntervalText}"/>
+                <Ellipse Width="8" Height="8" Margin="12,0,0,0"
+                         VerticalAlignment="Center"
+                         Fill="{Binding OutcomeKind, Converter={StaticResource OutcomeToBrush}}"
+                         ToolTip="{Binding OutcomeText}"/>
+            </StackPanel>
+            <ContentControl DockPanel.Dock="Right" HorizontalAlignment="Right">
+                <ContentControl.Style>
+                    <Style TargetType="ContentControl">
+                        <Setter Property="Content">
+                            <Setter.Value>
+                                <TextBlock Text="{Binding ElevationText}"/>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding CanRelaunchElevated}" Value="True">
+                                <Setter Property="Content">
+                                    <Setter.Value>
+                                        <Button Command="{Binding RelaunchElevatedCommand}"
+                                                ToolTip="{x:Static resx:Strings.StatusRelaunchAsAdmin}"
+                                                Content="{x:Static resx:Strings.StatusStandard}"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
+        </DockPanel>
 	</Grid>
 </Window>

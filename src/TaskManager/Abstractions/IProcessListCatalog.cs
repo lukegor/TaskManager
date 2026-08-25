@@ -3,18 +3,26 @@ using System.ComponentModel;
 using System.Diagnostics;
 using TaskManager.Abstractions;
 using TaskManager.Domain.Models;
+using TaskManager.Presentation;
 using Process = TaskManager.Domain.Models.Process;
 
 namespace TaskManager.Abstractions
 {
     /// <summary>
     /// Read side + batch operations facade over the live process list.
-    /// Implementations raise <see cref="INotifyPropertyChanged"/> for <see cref="ProcessCount"/>.
+    /// Implementations raise <see cref="INotifyPropertyChanged"/> for <see cref="ProcessCount"/>,
+    /// <see cref="LastRefresh"/> and <see cref="IsPollingPaused"/>.
     /// </summary>
     public interface IProcessListCatalog : INotifyPropertyChanged
     {
         ReadOnlyObservableCollection<ProcessItem> Items { get; }
         int ProcessCount { get; }
+
+        /// <summary>Outcome snapshot of the most recent refresh attempt; null before the first one.</summary>
+        RefreshDiagnostics? LastRefresh { get; }
+
+        /// <summary>True when the refresh interval is Paused, or polling has not started yet.</summary>
+        bool IsPollingPaused { get; }
 
         /// <summary>Initial fill followed by polling start; call exactly once at startup.</summary>
         Task InitializeAsync();

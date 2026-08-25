@@ -22,6 +22,7 @@ namespace TaskManager.UnitTests.ViewModels
         private readonly IErrorHandler _errorHandler = Substitute.For<IErrorHandler>();
         private readonly ISettingsService _settings = Substitute.For<ISettingsService>();
         private readonly IWindowService _windows = Substitute.For<IWindowService>();
+        private readonly IElevationService _elevation = Substitute.For<IElevationService>();
 
         public MainWindowViewModelTests()
         {
@@ -29,7 +30,7 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         private MainWindowViewModel CreateViewModel() =>
-            new(_messages, _catalog, _errorHandler, _settings, _windows);
+            new(_messages, _catalog, _errorHandler, _settings, _windows, _elevation);
 
         private static ProcessItem Row(int pid, bool selected = false) =>
             new(new Process { Name = $"p{pid}", Pid = pid, Path = string.Empty }) { IsSelected = selected };

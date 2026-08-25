@@ -19,6 +19,7 @@ namespace TaskManager.Infrastructure.Composition
             services.AddSingleton<IMessageService, MessageService>();
             services.AddSingleton<IErrorHandler, UiErrorHandler>();
             services.AddSingleton<IFolderPicker, FolderPicker>();
+            services.AddSingleton<IElevationService, ElevationService>();
 
             services.AddSingleton<Func<DataType, BaseDataExporter>>(sp => dataType => dataType switch
             {

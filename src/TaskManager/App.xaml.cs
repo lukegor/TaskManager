@@ -135,5 +135,24 @@ namespace TaskManager
             System.Diagnostics.Process.Start(currentExecutablePath!);
             Application.Current.Shutdown();
         }
+
+        /// <summary>Relaunches the app requesting elevation; UAC decline is a silent no-op.</summary>
+        internal static void RelaunchElevated()
+        {
+            try
+            {
+                var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!)
+                {
+                    UseShellExecute = true,
+                    Verb = "runas",
+                };
+                System.Diagnostics.Process.Start(psi);
+                Application.Current.Shutdown();
+            }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                // user declined elevation: stay running
+            }
+        }
     }
 }

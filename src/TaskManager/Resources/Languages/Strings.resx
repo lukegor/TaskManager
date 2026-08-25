@@ -277,4 +277,46 @@ Details were written to the log file.</value>
   <data name="ExportFailedInvalidPath" xml:space="preserve">
     <value>The target path is invalid.</value>
   </data>
+  <data name="StatusEverySeconds" xml:space="preserve">
+    <value>every {0} s</value>
+  </data>
+  <data name="StatusPaused" xml:space="preserve">
+    <value>Paused</value>
+  </data>
+  <data name="StatusOutcomeOk" xml:space="preserve">
+    <value>Last refresh completed</value>
+  </data>
+  <data name="StatusOutcomeSkipped" xml:space="preserve">
+    <value>Previous refresh still running</value>
+  </data>
+  <data name="StatusOutcomeFailed" xml:space="preserve">
+    <value>Last refresh failed</value>
+  </data>
+  <data name="StatusAdministrator" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="StatusStandard" xml:space="preserve">
+    <value>Standard user</value>
+  </data>
+  <data name="StatusRelaunchAsAdmin" xml:space="preserve">
+    <value>Relaunch as administrator</value>
+  </data>
+  <data name="HelpMenu" xml:space="preserve">
+    <value>Help</value>
+  </data>
+  <data name="AboutMenu" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="AboutVersionLabel" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="AboutCommitLabel" xml:space="preserve">
+    <value>Commit</value>
+  </data>
+  <data name="AboutLicenseLabel" xml:space="preserve">
+    <value>License: see LICENSE.txt</value>
+  </data>
+  <data name="AboutOkButton" xml:space="preserve">
+    <value>OK</value>
+  </data>
 </root>

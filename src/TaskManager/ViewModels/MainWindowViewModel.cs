@@ -1,12 +1,14 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using TaskManager.Abstractions;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Primitives;
+using TaskManager.Presentation;
 using TaskManager.Resources.Languages;
 using TaskManager.Services.ErrorHandling;
 
@@ -24,15 +26,18 @@ namespace TaskManager.ViewModels
         private readonly IErrorHandler _errorHandler;
         private readonly ISettingsService _settings;
         private readonly IWindowService _windows;
+        private readonly IElevationService _elevation;
 
         public MainWindowViewModel(IMessageService messageService, IProcessListCatalog catalog,
-            IErrorHandler errorHandler, ISettingsService settings, IWindowService windows)
+            IErrorHandler errorHandler, ISettingsService settings, IWindowService windows,
+            IElevationService elevationService)
         {
             _messageService = messageService;
             _catalog = catalog;
             _errorHandler = errorHandler;
             _settings = settings;
             _windows = windows;
+            _elevation = elevationService;
 
             ExportCommand = new RelayCommand(Export);
             TerminateCommand = new AsyncRelayCommand(TerminateAsync);
@@ -42,19 +47,64 @@ namespace TaskManager.ViewModels
                 _errorHandler.GuardAsync(() => _catalog.PerformRefreshAsync(isUserInitiated: true), "refreshing process list"));
             InitializeCommand = new AsyncRelayCommand(() =>
                 _errorHandler.GuardAsync(() => _catalog.InitializeAsync(), "loading initial process list"));
+            RelaunchElevatedCommand = new RelayCommand(RelaunchElevated);
 
-            // count forwarder: ProcessCount is owned by the catalog
+            // forwarders: count/status/diagnostics are owned by the catalog
             _catalog.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(IProcessListCatalog.ProcessCount))
                 {
                     OnPropertyChanged(nameof(ProcessCount));
                 }
+
+                if (e.PropertyName == nameof(IProcessListCatalog.IsPollingPaused))
+                {
+                    OnPropertyChanged(nameof(IsPollingPaused));
+                }
+
+                if (e.PropertyName == nameof(IProcessListCatalog.LastRefresh))
+                {
+                    OnPropertyChanged(nameof(LastRefresh));
+                    OnPropertyChanged(nameof(OutcomeText));
+                    OnPropertyChanged(nameof(OutcomeKind));
+                }
             };
+
+            // interval text is derived from settings only
+            _settings.Changed += _ => OnPropertyChanged(nameof(IntervalText));
         }
 
         #region Bindings
         public int ProcessCount => _catalog.ProcessCount;
+        public RefreshDiagnostics? LastRefresh => _catalog.LastRefresh;
+        public bool IsPollingPaused => _catalog.IsPollingPaused;
+        public string IntervalText
+        {
+            get
+            {
+                var seconds = RefreshFrequencies.SecondsMapping[_settings.Current.ProcessesRefreshFrequency];
+                return seconds == 0
+                    ? Strings.StatusPaused
+                    : string.Format(CultureInfo.CurrentCulture, Strings.StatusEverySeconds, seconds);
+            }
+        }
+
+        public string OutcomeText => _catalog.LastRefresh?.Outcome switch
+        {
+            RefreshOutcome.Ok => Strings.StatusOutcomeOk,
+            RefreshOutcome.Skipped => Strings.StatusOutcomeSkipped,
+            RefreshOutcome.Failed => Strings.StatusOutcomeFailed,
+            _ => "-",
+        };
+
+        public RefreshOutcome? OutcomeKind => _catalog.LastRefresh?.Outcome;
+
+        public string ElevationText => _elevation.IsAdministrator
+            ? Strings.StatusAdministrator
+            : Strings.StatusStandard;
+
+        public bool CanRelaunchElevated => !_elevation.IsAdministrator;
+
         public static IList<DataType> DataTypes => Enum.GetValues<DataType>();
         public ReadOnlyObservableCollection<ProcessItem> Processes => _catalog.Items;
         #endregion
@@ -70,6 +120,7 @@ namespace TaskManager.ViewModels
         public ICommand OpenSettingsCommand { get; }
         public ICommand RefreshCommand { get; }
         public AsyncRelayCommand InitializeCommand { get; }
+        public ICommand RelaunchElevatedCommand { get; }
         #endregion
 
         private void OpenSettings()
@@ -87,6 +138,9 @@ namespace TaskManager.ViewModels
         }
 
         private void Export() => _windows.ShowExport(_catalog.SnapshotForExport());
+
+        private void RelaunchElevated() =>
+            _errorHandler.Guard(App.RelaunchElevated, "relaunching as administrator");
 
         private IEnumerable<ProcessItem> GetSelectedProcesses() => Processes.Where(p => p.IsSelected);
 

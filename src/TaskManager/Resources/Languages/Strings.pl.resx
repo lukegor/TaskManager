@@ -246,4 +246,46 @@
 
 Wczytywanie ustawień domyślnych...</value>
   </data>
+  <data name="StatusEverySeconds" xml:space="preserve">
+    <value>co {0} s</value>
+  </data>
+  <data name="StatusPaused" xml:space="preserve">
+    <value>Wstrzymane</value>
+  </data>
+  <data name="StatusOutcomeOk" xml:space="preserve">
+    <value>Ostatnie odświeżenie zakończone</value>
+  </data>
+  <data name="StatusOutcomeSkipped" xml:space="preserve">
+    <value>Poprzednie odświeżanie w toku</value>
+  </data>
+  <data name="StatusOutcomeFailed" xml:space="preserve">
+    <value>Ostatnie odświeżenie nieudane</value>
+  </data>
+  <data name="StatusAdministrator" xml:space="preserve">
+    <value>Administrator</value>
+  </data>
+  <data name="StatusStandard" xml:space="preserve">
+    <value>Zwykły użytkownik</value>
+  </data>
+  <data name="StatusRelaunchAsAdmin" xml:space="preserve">
+    <value>Uruchom ponownie jako administrator</value>
+  </data>
+  <data name="HelpMenu" xml:space="preserve">
+    <value>Pomoc</value>
+  </data>
+  <data name="AboutMenu" xml:space="preserve">
+    <value>O programie</value>
+  </data>
+  <data name="AboutVersionLabel" xml:space="preserve">
+    <value>Wersja</value>
+  </data>
+  <data name="AboutCommitLabel" xml:space="preserve">
+    <value>Commit</value>
+  </data>
+  <data name="AboutLicenseLabel" xml:space="preserve">
+    <value>Licencja: zobacz LICENSE.txt</value>
+  </data>
+  <data name="AboutOkButton" xml:space="preserve">
+    <value>OK</value>
+  </data>
 </root>
