@@ -26,7 +26,6 @@ namespace TaskManager.ViewModels
         // services
         private readonly IServiceProvider _serviceProvider;
         private readonly IMessageService _messageService;
-        private readonly IDispatcherService _dispatcherService;
         private readonly ProcessManager _processManager;
         private readonly ProcessOperationsService _processOps;
         private readonly IErrorHandler _errorHandler;
@@ -56,7 +55,6 @@ namespace TaskManager.ViewModels
 
         public MainWindowViewModel(IServiceProvider serviceProvider,
             IMessageService messageService,
-            IDispatcherService dispatcherService,
             ProcessManager processManager,
             ProcessOperationsService processOps,
             IErrorHandler errorHandler,
@@ -64,7 +62,6 @@ namespace TaskManager.ViewModels
         {
             _serviceProvider = serviceProvider;
             _messageService = messageService;
-            _dispatcherService = dispatcherService;
             _processManager = processManager;
             _processOps = processOps;
             _errorHandler = errorHandler;

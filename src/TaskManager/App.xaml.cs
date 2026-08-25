@@ -95,7 +95,8 @@ namespace TaskManager
             services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
             services.AddSingleton<IMessageService, MessageService>();
             services.AddSingleton<IErrorHandler, UiErrorHandler>();
-            services.AddSingleton<IDispatcherService, WpfDispatcherService>();
+            services.AddSingleton<global::TaskManager.Abstractions.IDispatcherService, WpfDispatcherService>();
+            services.AddSingleton<global::TaskManager.Domain.Abstractions.IDispatcherService>(sp => sp.GetRequiredService<WpfDispatcherService>());
             services.AddSingleton<ISystemProcessEnumerator, NtSystemProcessEnumerator>();
             services.AddSingleton<ProcessEnricher>();
 
