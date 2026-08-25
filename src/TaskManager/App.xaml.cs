@@ -8,6 +8,7 @@ using TaskManager.Domain.Services;
 using TaskManager.Services;
 using TaskManager.Infrastructure.Logging;
 using TaskManager.Infrastructure.Settings;
+using TaskManager.Presentation;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.Services.Factories;
 using TaskManager.UI.Views;
@@ -101,6 +102,9 @@ namespace TaskManager
             services.AddSingleton<ProcessEnricher>();
 
             services.AddSingleton<ProcessOperationsService>();
+            services.AddSingleton<IProcessOperations>(sp => sp.GetRequiredService<ProcessOperationsService>());
+            services.AddSingleton<ProcessListCatalog>();
+            services.AddSingleton<IProcessListCatalog>(sp => sp.GetRequiredService<ProcessListCatalog>());
             services.AddSingleton<ProcessManager>();
             services.AddSingleton<TimerManager>();
             services.AddTransient<FolderSelector>();

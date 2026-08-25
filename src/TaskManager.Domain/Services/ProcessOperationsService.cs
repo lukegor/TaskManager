@@ -1,11 +1,12 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
 namespace TaskManager.Domain.Services
 {
-    public class ProcessOperationsService
+    public class ProcessOperationsService : IProcessOperations
     {
         private readonly ILogger<ProcessOperationsService> _logger;
 
