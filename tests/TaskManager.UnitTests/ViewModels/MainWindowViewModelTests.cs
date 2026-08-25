@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using NSubstitute;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -53,19 +54,19 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void Terminate_NoSelection_ShowsAlert_AndNeverTouchesCatalogOrConfirm()
+        public async Task Terminate_NoSelection_ShowsAlert_AndNeverTouchesCatalogOrConfirm()
         {
             var vm = CreateViewModel();
 
-            vm.TerminateCommand.Execute(null);
+            await vm.TerminateCommand.ExecuteAsync(null);
 
             _messages.Received(1).ShowMessage(
                 Strings.SelectProcess, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-            _catalog.DidNotReceive().TerminateProcesses(Arg.Any<IReadOnlyCollection<int>>());
+            _catalog.DidNotReceive().TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>());
         }
 
         [Fact]
-        public void Terminate_UserCancelsConfirmation_OperationSkipped()
+        public async Task Terminate_UserCancelsConfirmation_OperationSkipped()
         {
             SeedRows(Row(1, selected: true));
             _messages
@@ -73,43 +74,43 @@ namespace TaskManager.UnitTests.ViewModels
                 .Returns(MessageBoxResult.Cancel);
             var vm = CreateViewModel();
 
-            vm.TerminateCommand.Execute(null);
+            await vm.TerminateCommand.ExecuteAsync(null);
 
-            _catalog.DidNotReceive().TerminateProcesses(Arg.Any<IReadOnlyCollection<int>>());
+            _catalog.DidNotReceive().TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>());
         }
 
         [Fact]
-        public void Terminate_Confirmed_CleanSummary_NoExtraMessages()
+        public async Task Terminate_Confirmed_CleanSummary_NoExtraMessages()
         {
             SeedRows(Row(1, selected: true), Row(2, selected: false));
             _messages
                 .ShowMessage(Strings.AskingForConfirmation, Strings.Confirm, MessageBoxButton.OKCancel, MessageBoxImage.Warning)
                 .Returns(MessageBoxResult.OK);
-            _catalog.TerminateProcesses(Arg.Any<IReadOnlyCollection<int>>()).Returns(ProcessOpSummary.Empty);
+            _catalog.TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>()).Returns(ProcessOpSummary.Empty);
             var vm = CreateViewModel();
 
-            vm.TerminateCommand.Execute(null);
+            await vm.TerminateCommand.ExecuteAsync(null);
 
-            _catalog.Received(1).TerminateProcesses(
+            _catalog.Received(1).TerminateProcessesAsync(
                 Arg.Is<IReadOnlyCollection<int>>(pids => pids.Single() == 1)); // unselected row excluded
             _messages.ReceivedCalls().Count().ShouldBe(1); // confirmation prompt only
         }
 
         [Fact]
-        public void Terminate_PartialFailures_ReportsFormattedSummary()
+        public async Task Terminate_PartialFailures_ReportsFormattedSummary()
         {
             SeedRows(Row(1, selected: true));
             _messages
                 .ShowMessage(Strings.AskingForConfirmation, Strings.Confirm, MessageBoxButton.OKCancel, MessageBoxImage.Warning)
                 .Returns(MessageBoxResult.OK);
-            _catalog.TerminateProcesses(Arg.Any<IReadOnlyCollection<int>>()).Returns(new ProcessOpSummary
+            _catalog.TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>()).Returns(new ProcessOpSummary
             {
                 SucceededPids = [],
                 Failures = [new ProcessOpFailure(1, ProcessOpFailureReason.AccessDenied)]
             });
             var vm = CreateViewModel();
 
-            vm.TerminateCommand.Execute(null);
+            await vm.TerminateCommand.ExecuteAsync(null);
 
             _messages.Received(1).ShowMessage(
                 string.Format(Strings.OpsCompletedWithFailuresFormat, 0, 1),
@@ -129,11 +130,11 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void SetPriority_NoSelection_Alerts_AndDoesNotOpenDialog()
+        public async Task SetPriority_NoSelection_Alerts_AndDoesNotOpenDialog()
         {
             var vm = CreateViewModel();
 
-            vm.SetPriorityCommand.Execute(null);
+            await vm.SetPriorityCommand.ExecuteAsync(null);
 
             _messages.Received(1).ShowMessage(
                 Strings.SelectProcess, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -141,12 +142,12 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void SetPriority_Selected_DelegatesSelectedPidsToWindowService()
+        public async Task SetPriority_Selected_DelegatesSelectedPidsToWindowService()
         {
             SeedRows(Row(5, selected: true), Row(6, selected: true));
             var vm = CreateViewModel();
 
-            vm.SetPriorityCommand.Execute(null);
+            await vm.SetPriorityCommand.ExecuteAsync(null);
 
             _windows.Received(1).ShowSetPriority(
                 Arg.Is<IReadOnlyCollection<int>>(pids => pids.OrderBy(x => x).SequenceEqual(new[] { 5, 6 })));

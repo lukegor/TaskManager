@@ -205,37 +205,37 @@ namespace TaskManager.UnitTests.Presentation
         // ---- batch operation delegation + writeback ----
 
         [Fact]
-        public void TerminateProcesses_DelegatesToOpsService()
+        public async Task TerminateProcessesAsync_DelegatesToOpsService()
         {
             _ops.TerminateProcesses(Arg.Any<IReadOnlyCollection<int>>())
                 .Returns(ProcessOpSummary.Empty);
 
-            _catalog.TerminateProcesses([42]);
+            await _catalog.TerminateProcessesAsync([42]);
 
             _ops.Received(1).TerminateProcesses(
                 Arg.Is<IReadOnlyCollection<int>>(pids => pids.Single() == 42));
         }
 
         [Fact]
-        public void SetPriority_SuccessfulPids_AreWrittenBackIntoStoredRows()
+        public async Task SetPriorityAsync_SuccessfulPids_AreWrittenBackIntoStoredRows()
         {
             _enumerator.Queue(Snap(9));
-            _catalog.LoadForTestAsync().GetAwaiter().GetResult();
+            await _catalog.LoadForTestAsync();
 
             _ops.SetPriority(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>())
                 .Returns(new ProcessOpSummary { SucceededPids = [9], Failures = [] });
 
-            var summary = _catalog.SetPriority([9], ProcessPriorityClass.AboveNormal);
+            var summary = await _catalog.SetPriorityAsync([9], ProcessPriorityClass.AboveNormal);
 
             summary.HasFailures.ShouldBeFalse();
             _catalog.Items.Single().Process.Priority.ShouldBe(10); // AboveNormal => base priority 10
         }
 
         [Fact]
-        public void SetPriority_FailedPids_AreNotWrittenBack()
+        public async Task SetPriorityAsync_FailedPids_AreNotWrittenBack()
         {
             _enumerator.Queue(Snap(9));
-            _catalog.LoadForTestAsync().GetAwaiter().GetResult();
+            await _catalog.LoadForTestAsync();
 
             _ops.SetPriority(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>())
                 .Returns(new ProcessOpSummary
@@ -244,7 +244,7 @@ namespace TaskManager.UnitTests.Presentation
                     Failures = [new ProcessOpFailure(9, ProcessOpFailureReason.AccessDenied)]
                 });
 
-            _catalog.SetPriority([9], ProcessPriorityClass.BelowNormal);
+            await _catalog.SetPriorityAsync([9], ProcessPriorityClass.BelowNormal);
 
             _catalog.Items.Single().Process.Priority.ShouldNotBe(6); // untouched
         }

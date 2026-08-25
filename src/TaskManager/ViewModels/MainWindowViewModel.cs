@@ -35,8 +35,8 @@ namespace TaskManager.ViewModels
             _windows = windows;
 
             ExportCommand = new RelayCommand(Export);
-            TerminateCommand = new RelayCommand(TerminateProcesses);
-            SetPriorityCommand = new RelayCommand(SetPriority);
+            TerminateCommand = new AsyncRelayCommand(TerminateAsync);
+            SetPriorityCommand = new AsyncRelayCommand(SetPriorityAsync);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             RefreshCommand = new AsyncRelayCommand(() =>
                 _errorHandler.GuardAsync(() => _catalog.PerformRefreshAsync(isUserInitiated: true), "refreshing process list"));
@@ -65,8 +65,8 @@ namespace TaskManager.ViewModels
 
         #region Commands
         public ICommand ExportCommand { get; }
-        public ICommand TerminateCommand { get; }
-        public ICommand SetPriorityCommand { get; }
+        public AsyncRelayCommand TerminateCommand { get; }
+        public AsyncRelayCommand SetPriorityCommand { get; }
         public ICommand OpenSettingsCommand { get; }
         public ICommand RefreshCommand { get; }
         public AsyncRelayCommand InitializeCommand { get; }
@@ -90,7 +90,10 @@ namespace TaskManager.ViewModels
 
         private IEnumerable<ProcessItem> GetSelectedProcesses() => Processes.Where(p => p.IsSelected);
 
-        private void TerminateProcesses()
+        private int[] GetSelectedPids() =>
+            GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray();
+
+        private async Task TerminateAsync()
         {
             if (!EnsureSelection())
             {
@@ -103,12 +106,11 @@ namespace TaskManager.ViewModels
                 return;
             }
 
-            _errorHandler.Guard(() =>
+            await _errorHandler.GuardAsync(async () =>
             {
-                var summary = _catalog.TerminateProcesses(
-                    GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray());
+                var summary = await _catalog.TerminateProcessesAsync(GetSelectedPids());
                 ReportPartialFailures(summary);
-            });
+            }, "terminating selected processes");
         }
 
         private void ReportPartialFailures(ProcessOpSummary summary)
@@ -122,15 +124,18 @@ namespace TaskManager.ViewModels
                 Strings.Error, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
-        private void SetPriority()
+        private async Task SetPriorityAsync()
         {
             if (!EnsureSelection())
             {
                 return;
             }
 
-            _windows.ShowSetPriority(
-                GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray());
+            await _errorHandler.GuardAsync(() =>
+            {
+                _windows.ShowSetPriority(GetSelectedPids());
+                return Task.CompletedTask;
+            }, "opening the set-priority dialog");
         }
 
         private bool EnsureSelection()

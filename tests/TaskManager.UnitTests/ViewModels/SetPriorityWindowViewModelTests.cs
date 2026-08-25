@@ -26,41 +26,41 @@ namespace TaskManager.UnitTests.ViewModels
             new(_messages, _catalog, Pids, _errorHandler);
 
         [Fact]
-        public void Confirm_NoPriorityChosen_ShowsError_DoesNotApplyOrClose()
+        public async Task Confirm_NoPriorityChosen_ShowsError_DoesNotApplyOrClose()
         {
             var vm = CreateViewModel();
             var closed = false;
             vm.RequestClose += (_, _) => closed = true;
 
-            vm.OnConfirmCommand.Execute(null);
+            await vm.OnConfirmCommand.ExecuteAsync(null);
 
             _messages.Received(1).ShowMessage(
                 Strings.Select, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-            _catalog.DidNotReceive().SetPriority(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>());
+            _catalog.DidNotReceive().SetPriorityAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>());
             closed.ShouldBeFalse();
             vm.Confirmed.ShouldBeFalse();
         }
 
         [Fact]
-        public void Confirm_AppliesViaCatalog_MarksConfirmed_RaisesRequestClose()
+        public async Task Confirm_AppliesViaCatalog_MarksConfirmed_RaisesRequestClose()
         {
-            _catalog.SetPriority(Pids, ProcessPriorityClass.AboveNormal).Returns(ProcessOpSummary.Empty);
+            _catalog.SetPriorityAsync(Pids, ProcessPriorityClass.AboveNormal).Returns(ProcessOpSummary.Empty);
             var vm = CreateViewModel();
             vm.Priority = ProcessPriorityClass.AboveNormal;
             var closed = false;
             vm.RequestClose += (_, _) => closed = true;
 
-            vm.OnConfirmCommand.Execute(null);
+            await vm.OnConfirmCommand.ExecuteAsync(null);
 
-            _catalog.Received(1).SetPriority(Pids, ProcessPriorityClass.AboveNormal);
+            _catalog.Received(1).SetPriorityAsync(Pids, ProcessPriorityClass.AboveNormal);
             vm.Confirmed.ShouldBeTrue();
             closed.ShouldBeTrue();
         }
 
         [Fact]
-        public void Confirm_PartialFailures_ReportsFormattedSummary_BeforeClosing()
+        public async Task Confirm_PartialFailures_ReportsFormattedSummary_BeforeClosing()
         {
-            _catalog.SetPriority(Pids, ProcessPriorityClass.High).Returns(new ProcessOpSummary
+            _catalog.SetPriorityAsync(Pids, ProcessPriorityClass.High).Returns(new ProcessOpSummary
             {
                 SucceededPids = [7],
                 Failures = [new ProcessOpFailure(8, ProcessOpFailureReason.ProcessExited)]
@@ -68,7 +68,7 @@ namespace TaskManager.UnitTests.ViewModels
             var vm = CreateViewModel();
             vm.Priority = ProcessPriorityClass.High;
 
-            vm.OnConfirmCommand.Execute(null);
+            await vm.OnConfirmCommand.ExecuteAsync(null);
 
             _messages.Received(1).ShowMessage(
                 string.Format(Strings.OpsCompletedWithFailuresFormat, 1, 2),
@@ -77,16 +77,16 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void Confirm_CatalogThrows_IsGuarded_DoesNotClose()
+        public async Task Confirm_CatalogThrows_IsGuarded_DoesNotClose()
         {
-            _catalog.When(c => c.SetPriority(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>()))
+            _catalog.When(c => c.SetPriorityAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>()))
                 .Do(_ => throw new InvalidOperationException("os exploded"));
             var vm = CreateViewModel();
             vm.Priority = ProcessPriorityClass.Normal;
             var closed = false;
             vm.RequestClose += (_, _) => closed = true;
 
-            vm.OnConfirmCommand.Execute(null);
+            await vm.OnConfirmCommand.ExecuteAsync(null);
 
             closed.ShouldBeFalse();
             vm.Confirmed.ShouldBeFalse();

@@ -23,7 +23,7 @@ namespace TaskManager.ViewModels
 
         public ProcessPriorityClass? Priority { get; set => SetProperty(ref field, value); }
 
-        public ICommand OnConfirmCommand { get; }
+        public AsyncRelayCommand OnConfirmCommand { get; }
 
         public event EventHandler? RequestClose;
 
@@ -41,12 +41,12 @@ namespace TaskManager.ViewModels
             _catalog = catalog;
             _processIds = processes;
             _errorHandler = errorHandler;
-            OnConfirmCommand = new RelayCommand(OnConfirm);
+            OnConfirmCommand = new AsyncRelayCommand(OnConfirmAsync);
         }
 
-        private void OnConfirm()
+        private async Task OnConfirmAsync()
         {
-            _errorHandler.Guard(() =>
+            await _errorHandler.GuardAsync(async () =>
             {
                 if (Priority == null)
                 {
@@ -55,7 +55,7 @@ namespace TaskManager.ViewModels
                     return;
                 }
 
-                var summary = _catalog.SetPriority(_processIds, (ProcessPriorityClass)Priority);
+                var summary = await _catalog.SetPriorityAsync(_processIds, (ProcessPriorityClass)Priority);
                 ReportPartialFailures(summary);
 
                 Confirmed = true;

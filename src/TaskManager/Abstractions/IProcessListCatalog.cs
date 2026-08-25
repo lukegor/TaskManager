@@ -25,10 +25,13 @@ namespace TaskManager.Abstractions
         /// <summary>Materialized deep copy of current rows; safe to hold across refreshes.</summary>
         IReadOnlyList<Process> SnapshotForExport();
 
-        /// <summary>Delegates to ProcessOperationsService; expected OS failures are data, not exceptions.</summary>
-        ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> pids);
+        /// <summary>Delegates to ProcessOperationsService on a worker thread; expected OS failures are data, not exceptions.</summary>
+        Task<ProcessOpSummary> TerminateProcessesAsync(IReadOnlyCollection<int> pids);
 
-        /// <summary>Applies priority via ProcessOperationsService then writes base priority back into stored rows.</summary>
-        ProcessOpSummary SetPriority(IReadOnlyCollection<int> pids, ProcessPriorityClass priority);
+        /// <summary>
+        /// Applies priority via ProcessOperationsService on a worker thread, then writes base
+        /// priority back into stored rows on the caller's context (UI thread for commands).
+        /// </summary>
+        Task<ProcessOpSummary> SetPriorityAsync(IReadOnlyCollection<int> pids, ProcessPriorityClass priority);
     }
 }

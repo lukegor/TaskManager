@@ -104,12 +104,17 @@ namespace TaskManager.Presentation
             }
         }
 
-        public ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> pids)
-            => _processOps.TerminateProcesses(pids);
-
-        public ProcessOpSummary SetPriority(IReadOnlyCollection<int> pids, ProcessPriorityClass priority)
+        public async Task<ProcessOpSummary> TerminateProcessesAsync(IReadOnlyCollection<int> pids)
         {
-            var summary = _processOps.SetPriority(pids, priority);
+            // Deliberately NO ConfigureAwait(false) anywhere in these methods:
+            // SetPriority's writeback mutates INPC-bound rows and must resume on the
+            // caller's context (the UI thread when invoked from commands).
+            return await Task.Run(() => _processOps.TerminateProcesses(pids));
+        }
+
+        public async Task<ProcessOpSummary> SetPriorityAsync(IReadOnlyCollection<int> pids, ProcessPriorityClass priority)
+        {
+            var summary = await Task.Run(() => _processOps.SetPriority(pids, priority));
 
             foreach (var pid in summary.SucceededPids)
             {
