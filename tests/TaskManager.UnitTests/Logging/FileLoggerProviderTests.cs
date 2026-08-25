@@ -3,38 +3,82 @@ using TaskManager.Infrastructure.Logging;
 
 namespace TaskManager.UnitTests
 {
+    /// <summary>
+    /// All assertions are DisposeAsync-centered by design: the producer only enqueues,
+    /// so durable content is observable after the bounded-wait shutdown flush.
+    /// </summary>
     public class FileLoggerProviderTests : IDisposable
     {
         private readonly string _logDirectory =
             Path.Combine(Path.GetTempPath(), $"tm-log-tests-{Guid.NewGuid():N}");
 
         [Fact]
-        public void Write_AppendsFormattedMessageToDailyFile()
+        public async Task Write_AppendsFormattedMessageToDailyFile_OnDispose()
         {
             using var provider = new FileLoggerProvider(_logDirectory);
-            var logger = provider.CreateLogger("Test.Category");
+            provider.CreateLogger("Test.Category").LogInformation("hello {Name}", "world");
 
-            logger.LogInformation("hello {Name}", "world");
+            await provider.DisposeAsync();
 
-            var file = Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log");
-            File.Exists(file).ShouldBeTrue();
-            var content = File.ReadAllText(file);
+            var content = ReadTodayLog();
             content.ShouldContain("hello world");
             content.ShouldContain("[Information]");
             content.ShouldContain("Test.Category");
         }
 
         [Fact]
-        public void Write_IncludesExceptionDetails()
+        public async Task Write_IncludesExceptionDetails_OnDispose()
         {
             using var provider = new FileLoggerProvider(_logDirectory);
-            var logger = provider.CreateLogger("Cat");
+            provider.CreateLogger("Cat").LogError(new InvalidOperationException("boom"), "op failed");
 
-            logger.LogError(new InvalidOperationException("boom"), "op failed");
+            await provider.DisposeAsync();
 
-            var content = File.ReadAllText(Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log"));
-            content.ShouldContain("boom");
+            var content = ReadTodayLog();
+            content.ShouldContain("op failed");
             content.ShouldContain("[Error]");
+            content.ShouldContain("boom");
+        }
+
+        [Fact]
+        public async Task Write_BufferedContentNotVisibleBeforeDispose()
+        {
+            var provider = new FileLoggerProvider(_logDirectory); // manual lifecycle: no using
+            var file = Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log");
+
+            provider.CreateLogger("Cat").LogInformation("buffered secret marker");
+
+            var premature = File.Exists(file) ? File.ReadAllText(file) : string.Empty;
+            premature.ShouldNotContain("buffered secret marker"); // producer never wrote synchronously
+
+            await provider.DisposeAsync();
+
+            File.ReadAllText(file).ShouldContain("buffered secret marker");
+        }
+
+        [Fact]
+        public async Task Dispose_FlushesPendingEntries_FromMultipleCategories()
+        {
+            using var provider = new FileLoggerProvider(_logDirectory);
+            provider.CreateLogger("Category.A").LogWarning("first");
+            provider.CreateLogger("Category.B").LogWarning("second");
+
+            await provider.DisposeAsync();
+
+            var content = ReadTodayLog();
+            content.ShouldContain("first");
+            content.ShouldContain("second");
+        }
+
+        [Fact]
+        public async Task Dispose_IsIdempotent()
+        {
+            var provider = new FileLoggerProvider(_logDirectory);
+            provider.CreateLogger("Cat").LogInformation("once");
+
+            await provider.DisposeAsync();
+            await provider.DisposeAsync(); // must not throw
+            provider.Dispose();            // sync path over disposed provider: also fine
         }
 
         [Fact]
@@ -48,6 +92,12 @@ namespace TaskManager.UnitTests
             using var provider = new FileLoggerProvider(_logDirectory);
 
             File.Exists(staleLog).ShouldBeFalse();
+        }
+
+        private string ReadTodayLog()
+        {
+            var path = Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log");
+            return File.Exists(path) ? File.ReadAllText(path) : string.Empty;
         }
 
         public void Dispose()
