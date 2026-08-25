@@ -133,9 +133,9 @@ namespace TaskManager.UnitTests
         [Fact]
         public async Task Overflow_ReportsExactlyOneNotice_PerEpisode()
         {
-            // Windows file-sharing makes mid-drain reads impossible (the drain's
-            // StreamWriter denies other readers), so each episode is observed the
-            // same way as every test here: DisposeAsync-centered, after the flush.
+            // Mid-drain content reads are unreliable not because of share modes but
+            // because of write buffering plus flush-on-idle timing - so both episodes
+            // assert only AFTER their provider's DisposeAsync flush.
             const int capacity = 64;
 
             using (var provider = new FileLoggerProvider(_logDirectory, TimeProvider.System, capacity))

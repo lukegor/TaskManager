@@ -133,9 +133,8 @@ namespace TaskManager.Infrastructure.Logging
                 while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
                 {
                     // Drain everything currently available; the arm check runs BEFORE the
-                    // dequeue so a late-starting drain observes a full channel (Count ==
-                    // _capacity) deterministically — post-dequeue it can never re-reach
-                    // capacity under DropOldest.
+                    // dequeue so a late-starting drain (producers already finished)
+                    // observes a full channel (Count == _capacity) deterministically.
                     while (true)
                     {
                         ArmOverflowIfNeeded();
@@ -181,9 +180,10 @@ namespace TaskManager.Infrastructure.Logging
         }
 
         /// <summary>
-        /// Fires when an armed episode recovers (queue fully drained). Episode
-        /// evictions are exact: cumulative un-drained entries dropped below the
-        /// armed count. Runs on the drain thread only.
+        /// Fires when an armed episode recovers (queue fully drained). Estimates
+        /// episode evictions as cumulative un-drained entries below the armed count;
+        /// cross-producer timing can skew the bound slightly, hence "up to N" wording
+        /// in the notice. Runs on the drain thread only.
         /// </summary>
         private void ReportOverflowIfArmed()
         {
@@ -251,7 +251,10 @@ namespace TaskManager.Infrastructure.Logging
             _openDate = localDate;
             _stream = new StreamWriter(
                 Path.Combine(_logDirectory, $"tm-{localDate:yyyyMMdd}.log"),
-                append: true);
+                append: true)
+            {
+                AutoFlush = false, // flushed when the queue empties, at rollover, and on shutdown
+            };
         }
 
         private void DeleteExpiredLogs()
