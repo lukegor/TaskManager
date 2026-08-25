@@ -17,7 +17,7 @@ namespace TaskManager.Domain.Services
 
         public ProcessOpSummary TerminateProcesses(IReadOnlyCollection<int> pids)
         {
-            return ExecutePerPid(pids, pid =>
+            return ExecutePerPid("terminate", pids, pid =>
             {
                 using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.Kill();
@@ -30,7 +30,7 @@ namespace TaskManager.Domain.Services
 
         public ProcessOpSummary SetPriority(IReadOnlyCollection<int> pids, ProcessPriorityClass priority)
         {
-            return ExecutePerPid(pids, pid =>
+            return ExecutePerPid("set-priority", pids, pid =>
             {
                 using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.PriorityClass = priority;
@@ -41,7 +41,7 @@ namespace TaskManager.Domain.Services
             });
         }
 
-        private ProcessOpSummary ExecutePerPid(IEnumerable<int> selectedPids, Action<int> operation)
+        internal ProcessOpSummary ExecutePerPid(string operationName, IEnumerable<int> selectedPids, Action<int> operation)
         {
             var succeeded = new List<int>();
             var failures = new List<ProcessOpFailure>();
@@ -58,6 +58,18 @@ namespace TaskManager.Domain.Services
                     var reason = ClassifyFailure(ex);
                     _logger.LogWarning(ex, "Process operation failed for PID {Pid} ({Reason})", pid, reason);
                     failures.Add(new ProcessOpFailure(pid, reason));
+                }
+            }
+
+            _logger.LogInformation("Batch {Operation} completed: {SucceededCount} succeeded, {FailedCount} failed",
+                operationName, succeeded.Count, failures.Count);
+
+            if (failures.Count > 0 && _logger.IsEnabled(LogLevel.Debug))
+            {
+                foreach (var failure in failures)
+                {
+                    _logger.LogDebug("Batch {Operation}: PID {Pid} failed ({Reason})",
+                        operationName, failure.Pid, failure.Reason);
                 }
             }
 
