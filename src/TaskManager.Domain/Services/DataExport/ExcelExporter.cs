@@ -12,7 +12,7 @@ namespace TaskManager.Domain.Services.DataExport
 	    private const char Separator = ';';
         protected override string Extension => "xlsx";
 
-        public ExcelExporter(ISettingsService settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
+        public ExcelExporter(ISettingsService settings, ILogger<ExcelExporter> logger) : base(settings, logger)
         {
         }
 

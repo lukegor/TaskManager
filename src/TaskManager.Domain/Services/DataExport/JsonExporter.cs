@@ -9,7 +9,7 @@ namespace TaskManager.Domain.Services.DataExport
 	{
         protected override string Extension => "json";
 
-        public JsonExporter(ISettingsService settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
+        public JsonExporter(ISettingsService settings, ILogger<JsonExporter> logger) : base(settings, logger)
         {
         }
 

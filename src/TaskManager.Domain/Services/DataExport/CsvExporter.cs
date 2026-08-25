@@ -9,7 +9,7 @@ namespace TaskManager.Domain.Services.DataExport
 	    private const char Separator = ',';
         protected override string Extension => "csv";
 
-        public CsvExporter(ISettingsService settings, ILogger<BaseDataExporter> logger)
+        public CsvExporter(ISettingsService settings, ILogger<CsvExporter> logger)
             : base(settings, logger)
         {
         }

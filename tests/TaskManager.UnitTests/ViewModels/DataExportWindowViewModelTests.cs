@@ -52,7 +52,7 @@ namespace TaskManager.UnitTests.ViewModels
         public void TryExport_Success_WritesFileAndReturnsTrue()
         {
             _registeredExporters[DataTypeEnum.Txt] =
-                new TxtExporter(NewSettings(), NullLogger<BaseDataExporter>.Instance);
+                new TxtExporter(NewSettings(), NullLogger<TxtExporter>.Instance);
 
             var success = _viewModel.TryExport(DataTypeEnum.Txt);
 
@@ -89,7 +89,7 @@ namespace TaskManager.UnitTests.ViewModels
                 new() { Name = "p2", Pid = 2, Path = string.Empty },
             };
             _registeredExporters[DataTypeEnum.Txt] =
-                new TxtExporter(NewSettings(), NullLogger<BaseDataExporter>.Instance);
+                new TxtExporter(NewSettings(), NullLogger<TxtExporter>.Instance);
             var vm = CreateViewModel(processes);
             vm.DirPath = _tempDirectory;
 
@@ -153,7 +153,7 @@ namespace TaskManager.UnitTests.ViewModels
         private sealed class ThrowingExporter : TxtExporter
         {
             public ThrowingExporter(ISettingsService settings)
-                : base(settings, NullLogger<BaseDataExporter>.Instance)
+                : base(settings, NullLogger<TxtExporter>.Instance)
             {
             }
 

@@ -11,9 +11,9 @@ namespace TaskManager.Domain.Services.DataExport
         protected abstract string Extension { get; }
 
         private readonly ISettingsService _settings;
-        private readonly ILogger<BaseDataExporter> _logger;
+        private readonly ILogger _logger;
 
-        public BaseDataExporter(ISettingsService settings, ILogger<BaseDataExporter> logger)
+        public BaseDataExporter(ISettingsService settings, ILogger logger)
         {
             _settings = settings;
             _logger = logger;

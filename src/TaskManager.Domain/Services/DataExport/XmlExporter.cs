@@ -9,7 +9,7 @@ namespace TaskManager.Domain.Services.DataExport
 	{
 		protected override string Extension => "xml";
 
-        public XmlExporter(ISettingsService settings, ILogger<BaseDataExporter> logger) : base(settings, logger)
+        public XmlExporter(ISettingsService settings, ILogger<XmlExporter> logger) : base(settings, logger)
         {
         }
 

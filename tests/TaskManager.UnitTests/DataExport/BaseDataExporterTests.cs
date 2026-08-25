@@ -31,7 +31,7 @@ namespace TaskManager.UnitTests
         public void Export_Success_ReturnsFilePath()
         {
             Directory.CreateDirectory(_tempDirectory);
-            var exporter = new TxtExporter(CreateSettings(), NullLogger<BaseDataExporter>.Instance);
+            var exporter = new TxtExporter(CreateSettings(), NullLogger<TxtExporter>.Instance);
 
             var result = exporter.Export<DummyRecord>(_tempDirectory, []);
 
@@ -78,7 +78,7 @@ namespace TaskManager.UnitTests
             private readonly Exception _failureToThrow;
 
             public ThrowingExporter(ISettingsService settings, Exception failureToThrow)
-                : base(settings, NullLogger<BaseDataExporter>.Instance)
+                : base(settings, NullLogger<TxtExporter>.Instance)
             {
                 _failureToThrow = failureToThrow;
             }

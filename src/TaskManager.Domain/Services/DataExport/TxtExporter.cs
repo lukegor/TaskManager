@@ -8,7 +8,7 @@ namespace TaskManager.Domain.Services.DataExport
     {
         protected override string Extension => "txt";
 
-        public TxtExporter(ISettingsService settings, ILogger<BaseDataExporter> logger)
+        public TxtExporter(ISettingsService settings, ILogger<TxtExporter> logger)
             : base(settings, logger)
         {
         }
