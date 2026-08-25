@@ -34,7 +34,7 @@ internal sealed class SingleInstanceGuard : IDisposable
 - **Name:** `Local\TaskManager.SingleInstance` (per-session scope).
 - **Normal mode** (`waitForExistingRelease == false`, plain launches): `new Mutex(true, name, out createdNew)`; `createdNew == true` ⇒ first instance; otherwise second-instance path. The `createdNew` pattern is immune to `AbandonedMutexException` from crashed predecessors.
 - **Handoff mode** (`waitForExistingRelease == true`, passed `--await-instance` command-line argument): construct non-owning, then `WaitOne(TimeSpan.FromSeconds(10))` for the predecessor to release during restart/relaunch. `AbandonedMutexException` from a crashed predecessor counts as acquired. Timeout ⇒ fall back to second-instance behavior (best effort).
-- **Activation:** enumerate `Process.GetProcessesByName(<current executable base name without extension>)`, skip own PID, take the first process with `MainWindowHandle != 0`; `ShowWindow(handle, SW_RESTORE)` when iconic, then `SetForegroundWindow(handle)`. P-Invoke declarations stay in this class (or an adjacent interop static) — small, private, `[LibraryImport]`-style.
+P/Invoke declarations live inside this class as private members of a partial interop static using the `[LibraryImport]` source generator (modern default; analyzers enforce it).
 - **App wiring:** guard constructed in `App.OnStartup` **before container build**, stored in a static field. Flow:
 
 ```
