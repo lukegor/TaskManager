@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -36,7 +37,9 @@ namespace TaskManager.Infrastructure.Logging
         private long _enqueuedTotal;
         private long _drainedTotal;
 
-        private long _overflowState = -1;      // -1 = idle; 1 = armed (see Enqueue)
+        // Overflow episode state: confined to the single drain thread, so plain
+        // fields are safe. -1 = idle; 1 = armed (queue observed at full capacity).
+        private long _overflowState = -1;
         private long _overflowArmEnqueued;
         private long _overflowArmDrained;
         private long _overflowArmCount;
@@ -119,17 +122,7 @@ namespace TaskManager.Infrastructure.Logging
 
             if (_channel.Writer.TryWrite(entry))
             {
-                var enqueued = Interlocked.Increment(ref _enqueuedTotal);
-
-                // DropOldest evicts silently; true saturation is visible as a full channel.
-                // Edge-triggered: arm once per episode; the drain disarms on full recovery.
-                if (_channel.Reader.Count >= _capacity)
-                {
-                    Volatile.Write(ref _overflowArmDrained, Volatile.Read(ref _drainedTotal));
-                    Volatile.Write(ref _overflowArmCount, _channel.Reader.Count);
-                    Volatile.Write(ref _overflowArmEnqueued, enqueued);
-                    Interlocked.CompareExchange(ref _overflowState, 1, -1); // -1 = idle, 1 = armed
-                }
+                Interlocked.Increment(ref _enqueuedTotal);
             }
         }
 
@@ -137,14 +130,28 @@ namespace TaskManager.Infrastructure.Logging
         {
             try
             {
-                await foreach (var entry in _channel.Reader.ReadAllAsync().ConfigureAwait(false))
+                while (await _channel.Reader.WaitToReadAsync().ConfigureAwait(false))
                 {
-                    Append(entry);
-                    Interlocked.Increment(ref _drainedTotal);
-                    if (_channel.Reader.Count == 0 && _stream is not null)
+                    // Drain everything currently available; the arm check runs BEFORE the
+                    // dequeue so a late-starting drain observes a full channel (Count ==
+                    // _capacity) deterministically — post-dequeue it can never re-reach
+                    // capacity under DropOldest.
+                    while (true)
                     {
-                        ReportOverflowIfArmed();
-                        await _stream.FlushAsync().ConfigureAwait(false);
+                        ArmOverflowIfNeeded();
+                        if (!_channel.Reader.TryRead(out var entry))
+                        {
+                            break;
+                        }
+
+                        Append(entry);
+                        Interlocked.Increment(ref _drainedTotal);
+
+                        if (_channel.Reader.Count == 0 && _stream is not null)
+                        {
+                            ReportOverflowIfArmed();
+                            await _stream.FlushAsync().ConfigureAwait(false);
+                        }
                     }
                 }
             }
@@ -159,29 +166,41 @@ namespace TaskManager.Infrastructure.Logging
             }
         }
 
-        /// <summary>
-        /// Fires when an armed episode recovers: the queue is fully drained. Exact
-        /// evictions for the episode = (Δenqueued − Δdrained) + countAtArm.
-        /// </summary>
-        private void ReportOverflowIfArmed()
+        /// <summary>Drain-thread only: arms an overflow episode when the channel is at capacity.</summary>
+        private void ArmOverflowIfNeeded()
         {
-            if (Interlocked.Read(ref _overflowState) != 1)
+            if (_overflowState >= 0 || _channel.Reader.Count < _capacity)
             {
                 return;
             }
 
-            var armEnqueued = Volatile.Read(ref _overflowArmEnqueued);
-            var armDrained = Volatile.Read(ref _overflowArmDrained);
-            var armCount = Volatile.Read(ref _overflowArmCount);
+            _overflowArmEnqueued = Volatile.Read(ref _enqueuedTotal);
+            _overflowArmDrained = _drainedTotal;
+            _overflowArmCount = _channel.Reader.Count;
+            _overflowState = 1;
+        }
 
-            if (Interlocked.Exchange(ref _overflowState, -1) != 1)
+        /// <summary>
+        /// Fires when an armed episode recovers (queue fully drained). Episode
+        /// evictions are exact: cumulative un-drained entries dropped below the
+        /// armed count. Runs on the drain thread only.
+        /// </summary>
+        private void ReportOverflowIfArmed()
+        {
+            if (_overflowState != 1 || _stream is null)
             {
-                return; // another thread already closed the episode
+                return;
             }
 
-            var dropped = (_enqueuedTotal - armEnqueued) - (_drainedTotal - armDrained) + armCount;
-            _stream?.WriteLine(
-                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [Warning] {nameof(FileLoggerProvider)}: log buffer overflowed; up to {dropped} entries were dropped.");
+            var dropped = (_enqueuedTotal - _overflowArmEnqueued)
+                          - (_drainedTotal - _overflowArmDrained)
+                          + _overflowArmCount;
+            _overflowState = -1; // re-arm for future episodes
+
+            var timestamp = _timeProvider.GetLocalNow().LocalDateTime.ToString(
+                "yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture);
+            _stream.WriteLine(
+                $"{timestamp} [Warning] {nameof(FileLoggerProvider)}: log buffer overflowed; up to {dropped} entries were dropped.");
         }
 
         private async Task FlushAndDisposeStreamAsync()

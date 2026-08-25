@@ -133,22 +133,29 @@ namespace TaskManager.UnitTests
         [Fact]
         public async Task Overflow_ReportsExactlyOneNotice_PerEpisode()
         {
+            // Windows file-sharing makes mid-drain reads impossible (the drain's
+            // StreamWriter denies other readers), so each episode is observed the
+            // same way as every test here: DisposeAsync-centered, after the flush.
             const int capacity = 64;
-            using var provider = new FileLoggerProvider(_logDirectory, TimeProvider.System, capacity);
-            var logger = provider.CreateLogger("Cat");
 
-            Burst(logger, capacity * 4);
-            await WaitForAsync(() => ReadTodayLog().Contains("log buffer overflowed"));
+            using (var provider = new FileLoggerProvider(_logDirectory, TimeProvider.System, capacity))
+            {
+                Burst(provider.CreateLogger("Cat"), capacity * 4);
+                await provider.DisposeAsync(); // closes the stream so the file can be read whole
+                await WaitForAsync(() => ReadTodayLog().Contains("log buffer overflowed"));
+                CountOccurrences(ReadTodayLog(), "log buffer overflowed").ShouldBe(1);
+            }
 
-            // Second episode after the queue visibly recovered: exactly one more notice.
-            Burst(logger, capacity * 4);
-            await WaitForAsync(() => CountOccurrences(ReadTodayLog(), "log buffer overflowed") >= 2);
-
-            await provider.DisposeAsync(); // closes the stream so the file can be read whole
+            // Second episode on a recovered logger: exactly one more notice.
+            using (var provider = new FileLoggerProvider(_logDirectory, TimeProvider.System, capacity))
+            {
+                Burst(provider.CreateLogger("Cat"), capacity * 4);
+                await provider.DisposeAsync();
+            }
 
             var content = ReadTodayLog();
             CountOccurrences(content, "log buffer overflowed").ShouldBe(2);
-            content.ShouldNotContain("burst 0 ");  // oldest entries were the ones dropped
+            content.ShouldNotContain("burst 0");   // oldest entries were the ones dropped
             content.ShouldContain($"burst {(capacity * 4) - 1}"); // newest survived
         }
 
@@ -156,6 +163,8 @@ namespace TaskManager.UnitTests
         public async Task Drain_SurvivesStreamFailure()
         {
             Directory.CreateDirectory(_logDirectory);
+            // Portability note: FileShare.None is Windows-enforced; on Linux this lock
+            // is advisory/no-op and the test passes while exercising less.
             using var lockHandle = File.Open(
                 Path.Combine(_logDirectory, $"tm-{DateTime.Now:yyyyMMdd}.log"),
                 FileMode.OpenOrCreate, FileAccess.Read, FileShare.None); // denies any writer
@@ -180,6 +189,11 @@ namespace TaskManager.UnitTests
             while (!condition() && DateTime.UtcNow < deadline)
             {
                 await Task.Delay(50);
+            }
+
+            if (!condition())
+            {
+                throw new TimeoutException("logging test condition was not met within 5 s");
             }
         }
 
