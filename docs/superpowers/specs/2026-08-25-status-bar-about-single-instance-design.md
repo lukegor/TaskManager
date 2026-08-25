@@ -104,7 +104,7 @@ Implementation computes `WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole
 
 ## 4. D3 — About Dialog
 
-- `IWindowService.ShowAbout()` added; `WindowService.CreateAboutDialog()` constructs `AboutWindow` directly — **no view-model**: the dialog is static content (the settings-style close-relay machinery is unnecessary; OK button closes in code-behind).
+- `IWindowService.ShowAbout()` added; `WindowService.CreateAboutDialog()` pairs `AboutWindow` with a trivial `AboutWindowViewModel` (empty `ObservableObject`) - the repo enforces an `EveryWindowHasCorrespondingViewModel` invariant test, so the original no-VM simplification was overruled by house convention; OK button closes in code-behind.
 - New `Help` top-level menu containing `About`, bound to `OpenAboutCommand` on the main VM (mirrors `OpenSettingsCommand`).
 - Content stack: product name, `Version <x.y.z>`, `Commit <sha>`, license line referencing `LICENSE.txt` (wording stays generic — no license type asserted), hyperlink to the repository (`https://github.com/lukegor/TaskManager`, opened via `RequestNavigate` handler), OK button (`IsDefault`).
 - Version parsing lives in an internal static helper so it is unit-testable:
