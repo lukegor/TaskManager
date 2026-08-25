@@ -112,7 +112,7 @@ Rewritten existing tests:
 
 New tests:
 
-1. `Write_BufferedContentNotVisibleBeforeDispose` — after Log, the file (if already created) does not contain the message; after `DisposeAsync` it does. Proves off-thread buffered handoff (the backlog acceptance criterion).
+1. `Write_PersistsThroughShutdownFlush` - entries survive the bounded-wait shutdown flush. Mid-life visibility is deliberately NOT asserted: flush-on-idle makes it scheduling-dependent. The no-sync-I/O-on-caller-thread guarantee is structural (the producer only enqueues into the channel), not timing-proven.
 2. `Dispose_FlushesPendingEntries` — multiple entries across categories survive shutdown without any explicit flush call.
 3. `Dispose_IsIdempotent` — double dispose throws nothing, single drain outcome.
 4. `Rollover_CreatesNewDailyFile_AndRunsRetention` — `FakeTimeProvider` advanced across midnight between entries; second file created, stale files deleted at rollover.
