@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using TaskManager.Domain.Abstractions;
@@ -81,12 +82,26 @@ namespace TaskManager
         {
             services.AddLogging(logging =>
             {
-                logging.SetMinimumLevel(LogLevel.Debug);
+                logging.SetMinimumLevel(ResolveMinimumLogLevel());
                 logging.AddProvider(new FileLoggerProvider());
             });
 
             services.AddCoreServices();
             services.AddUiServices();
+        }
+
+        /// <summary>
+        /// TASKMANAGER_LOGLEVEL overrides; otherwise Debug under a debugger, else Information.
+        /// </summary>
+        internal static LogLevel ResolveMinimumLogLevel() =>
+            TryResolveMinimumLogLevel(Environment.GetEnvironmentVariable("TASKMANAGER_LOGLEVEL"), out var parsed)
+                ? parsed
+                : Debugger.IsAttached ? LogLevel.Debug : LogLevel.Information;
+
+        internal static bool TryResolveMinimumLogLevel(string? raw, out LogLevel level)
+        {
+            return Enum.TryParse(raw, ignoreCase: true, out level)
+                   && Enum.IsDefined(level);
         }
 
         private void LaunchGUI()
