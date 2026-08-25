@@ -8,8 +8,11 @@ data export (Excel/CSV/JSON/XML/TXT). English and Polish UI.
 
 ```
 src/
-  TaskManager/           WPF application (views, view models, app services, localization)
-  TaskManager.Domain/    UI-free core: process models, diff engine, enricher, exporters
+  TaskManager/           WPF application: views, view models, presentation state
+                         (ProcessListCatalog), window orchestration (IWindowService),
+                         app services, localization
+  TaskManager.Domain/    UI-free core: process snapshots/diff engine, enrichment,
+                         OS process operations, exporters, settings model
 tests/
   TaskManager.UnitTests/         fast, hermetic test suite (default `dotnet test` target)
   TaskManager.IntegrationTests/  tests against live system state; run explicitly

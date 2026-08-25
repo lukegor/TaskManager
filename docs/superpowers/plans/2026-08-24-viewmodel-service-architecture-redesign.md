@@ -2193,3 +2193,13 @@ git commit -m "docs: describe presentation/core split in README solution layout"
 | `ProcessManager`/`TimerManager` deleted; integration tests target ops service | 5 |
 | Domain free of `TaskManager.Abstractions` references | 5 |
 | Full suites green; boundary greps; README updated | 6 |
+
+## Execution Notes (as-built deviations)
+
+Recorded during execution on branch `refactor/project-structure-consolidation`:
+
+1. **Task 2 sequencing corrected.** Domain cannot reference `TaskManager.Abstractions` (the app project depends on Domain — a back-reference is impossible). Executed as: app-level `IDispatcherService` introduced immediately; `WpfDispatcherService` implemented *both* interfaces transitionally with a forwarding DI registration; the Domain interface and forwarding registration were deleted together with `ProcessManager` in Task 5.
+2. **`IProcessOperations` extracted** (`Domain/Abstractions`) and consumed by the catalog. NSubstitute cannot intercept non-virtual methods of the concrete `ProcessOperationsService`, which made catalog unit tests execute real OS calls. The interface is the honest DIP fix; integration tests still target the concrete class.
+3. **`TryExport(DataType)` signature** dropped the unused-after-validation `ExportationType` parameter entirely (plan had kept it).
+4. **Export tests use a hand-rolled factory fake** instead of `Substitute.For<Func<…>>()` — NSubstitute failed to record delegate invocations in this setup (`CouldNotSetReturnDueToNoLastCallException`); the dictionary-backed fake is deterministic.
+5. **Known environmental flake (pre-existing):** `ClipboardCopyTests.CopyMultipleRows_JoinsFormatterOutputWithNewlines` reads the live system clipboard (its own header documents cross-app contention). It failed intermittently during execution and passed on all dedicated re-runs; not a redesign regression.
