@@ -175,27 +175,33 @@ namespace TaskManager.Presentation
 
         private async Task RunPollingLoopAsync(CancellationToken ct)
         {
-            try
+            while (!ct.IsCancellationRequested)
             {
-                var seconds = CurrentIntervalSeconds;
-                if (seconds == 0)
+                try
                 {
-                    return; // paused: idle until the next settings change starts a fresh loop
-                }
+                    var seconds = CurrentIntervalSeconds;
+                    if (seconds == 0)
+                    {
+                        return; // paused: idle until the next settings change starts a fresh loop
+                    }
 
-                using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds), _timeProvider);
-                while (await timer.WaitForNextTickAsync(ct))
-                {
-                    await SafePollingRefreshAsync();
+                    using var timer = new PeriodicTimer(TimeSpan.FromSeconds(seconds), _timeProvider);
+                    while (await timer.WaitForNextTickAsync(ct))
+                    {
+                        await SafePollingRefreshAsync();
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                // normal reconfiguration/shutdown path
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Polling loop terminated unexpectedly");
+                catch (OperationCanceledException)
+                {
+                    return; // normal reconfiguration/shutdown path
+                }
+                catch (Exception ex)
+                {
+                    // defense in depth: a single unexpected failure must not kill polling
+                    // until the next settings change. Real-time backoff on purpose.
+                    _logger.LogError(ex, "Polling iteration failed; restarting loop");
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+                }
             }
         }
 
