@@ -62,7 +62,7 @@ namespace TaskManager.UnitTests.ViewModels
 
             _messages.Received(1).ShowMessage(
                 Strings.SelectProcess, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-            _catalog.DidNotReceive().TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>());
+            await _catalog.DidNotReceive().TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>());
         }
 
         [Fact]
@@ -76,7 +76,7 @@ namespace TaskManager.UnitTests.ViewModels
 
             await vm.TerminateCommand.ExecuteAsync(null);
 
-            _catalog.DidNotReceive().TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>());
+            await _catalog.DidNotReceive().TerminateProcessesAsync(Arg.Any<IReadOnlyCollection<int>>());
         }
 
         [Fact]
@@ -91,7 +91,7 @@ namespace TaskManager.UnitTests.ViewModels
 
             await vm.TerminateCommand.ExecuteAsync(null);
 
-            _catalog.Received(1).TerminateProcessesAsync(
+            await _catalog.Received(1).TerminateProcessesAsync(
                 Arg.Is<IReadOnlyCollection<int>>(pids => pids.Single() == 1)); // unselected row excluded
             _messages.ReceivedCalls().Count().ShouldBe(1); // confirmation prompt only
         }

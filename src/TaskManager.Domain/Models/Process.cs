@@ -15,7 +15,7 @@ namespace TaskManager.Domain.Models
         private string _name = string.Empty;
 
         [ObservableProperty]
-        private int? _pid;
+        private int _pid;
 
         [ObservableProperty]
         private string _path = string.Empty;

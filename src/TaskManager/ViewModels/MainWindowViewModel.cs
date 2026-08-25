@@ -91,7 +91,7 @@ namespace TaskManager.ViewModels
         private IEnumerable<ProcessItem> GetSelectedProcesses() => Processes.Where(p => p.IsSelected);
 
         private int[] GetSelectedPids() =>
-            GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray();
+            GetSelectedProcesses().Select(x => x.Process.Pid).ToArray();
 
         private async Task TerminateAsync()
         {

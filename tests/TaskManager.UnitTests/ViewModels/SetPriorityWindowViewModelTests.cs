@@ -36,7 +36,7 @@ namespace TaskManager.UnitTests.ViewModels
 
             _messages.Received(1).ShowMessage(
                 Strings.Select, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-            _catalog.DidNotReceive().SetPriorityAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>());
+            await _catalog.DidNotReceive().SetPriorityAsync(Arg.Any<IReadOnlyCollection<int>>(), Arg.Any<ProcessPriorityClass>());
             closed.ShouldBeFalse();
             vm.Confirmed.ShouldBeFalse();
         }
@@ -52,7 +52,7 @@ namespace TaskManager.UnitTests.ViewModels
 
             await vm.OnConfirmCommand.ExecuteAsync(null);
 
-            _catalog.Received(1).SetPriorityAsync(Pids, ProcessPriorityClass.AboveNormal);
+            await _catalog.Received(1).SetPriorityAsync(Pids, ProcessPriorityClass.AboveNormal);
             vm.Confirmed.ShouldBeTrue();
             closed.ShouldBeTrue();
         }

@@ -57,7 +57,7 @@ namespace TaskManager.UnitTests.Presentation
 
             await _catalog.LoadForTestAsync();
 
-            _catalog.Items.Select(i => i.Process.Pid).ShouldBe(new int?[] { 1, 2 });
+            _catalog.Items.Select(i => i.Process.Pid).ShouldBe(new[] { 1, 2 });
             _catalog.ProcessCount.ShouldBe(2);
         }
 
@@ -87,7 +87,7 @@ namespace TaskManager.UnitTests.Presentation
             _enumerator.Queue(ProcessFakes.Snap(2), ProcessFakes.Snap(3));
             await _catalog.SafePollingRefreshAsync();
 
-            _catalog.Items.Select(i => i.Process.Pid).ShouldBe(new int?[] { 2, 3 });
+            _catalog.Items.Select(i => i.Process.Pid).ShouldBe(new[] { 2, 3 });
         }
 
         [Fact]
