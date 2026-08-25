@@ -108,26 +108,41 @@ namespace TaskManager.Presentation
         /// A dispatcher failure during ApplyBatch lands here from the warning-catch;
         /// re-throwing would escape SafePollingRefreshAsync's containment.
         /// </summary>
-        private void PublishRefresh(double durationMs, RefreshOutcome outcome)
+        /// <summary>
+        /// Best-effort telemetry: diagnostics must never destabilize the pipeline.
+        /// A dispatcher failure during ApplyBatch lands here from the warning-catch;
+        /// re-throwing would escape SafePollingRefreshAsync's containment. The try/catch
+        /// wraps Invoke itself because a failing dispatcher may throw without running the lambda.
+        /// </summary>
+        private void PublishOk(double durationMs)
         {
             try
             {
                 _dispatcher.Invoke(() =>
                 {
-                    if (outcome == RefreshOutcome.Ok)
-                    {
-                        _lastCompletedDurationMs = durationMs;
-                    }
-
-                    LastRefresh = new RefreshDiagnostics(durationMs, outcome, _timeProvider.GetLocalNow());
+                    _lastCompletedDurationMs = durationMs;
+                    LastRefresh = new RefreshDiagnostics(durationMs, RefreshOutcome.Ok, _timeProvider.GetLocalNow());
                 });
             }
             catch (Exception ex)
             {
-                if (_logger.IsEnabled(LogLevel.Debug))
+                _logger.LogDebug(ex, "Failed to publish {Outcome} diagnostics", RefreshOutcome.Ok);
+            }
+        }
+
+        /// <summary>Reads _lastCompletedDurationMs INSIDE the invoke so it cannot race PublishOk.</summary>
+        private void PublishNonOk(RefreshOutcome outcome)
+        {
+            try
+            {
+                _dispatcher.Invoke(() =>
                 {
-                    _logger.LogDebug(ex, "Failed to publish refresh diagnostics");
-                }
+                    LastRefresh = new RefreshDiagnostics(_lastCompletedDurationMs, outcome, _timeProvider.GetLocalNow());
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to publish {Outcome} diagnostics", outcome);
             }
         }
 
@@ -135,6 +150,9 @@ namespace TaskManager.Presentation
         {
             await SafePollingRefreshAsync();
             StartPolling();
+
+            // Plain INPC write: settings changes arrive on the UI thread, and WPF
+            // auto-marshals scalar property bindings — no dispatcher hop needed here.
             IsPollingPaused = CurrentIntervalSeconds == 0;
         }
 
@@ -217,6 +235,9 @@ namespace TaskManager.Presentation
                 _logger.LogInformation("Polling interval set to {Seconds}s", seconds);
             }
             RestartPolling(); // picks up new period; Paused stops ticking; resume starts a fresh loop
+
+            // Plain INPC write: settings changes arrive on the UI thread, and WPF
+            // auto-marshals scalar property bindings — no dispatcher hop needed here.
             IsPollingPaused = seconds == 0;
         }
 
@@ -294,7 +315,7 @@ namespace TaskManager.Presentation
                 if (!_refreshGate.Wait(0))
                 {
                     _logger.LogDebug("Refresh skipped; previous refresh still in flight");
-                    PublishRefresh(_lastCompletedDurationMs, RefreshOutcome.Skipped);
+                    PublishNonOk(RefreshOutcome.Skipped);
                     return;
                 }
             }
@@ -310,7 +331,7 @@ namespace TaskManager.Presentation
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Polling refresh failed");
-                PublishRefresh(_lastCompletedDurationMs, RefreshOutcome.Failed);
+                PublishNonOk(RefreshOutcome.Failed);
             }
             finally
             {
@@ -374,6 +395,7 @@ namespace TaskManager.Presentation
                 return new PipelineBatch(diff, enrichments);
             }).ConfigureAwait(false);
 
+            // Trace scope excludes ApplyBatch (pipeline cost); diagnostics below include it (full operation cost).
             if (_logger.IsEnabled(LogLevel.Debug))
             {
                 var elapsed = _timeProvider.GetElapsedTime(startTimestamp);
@@ -386,7 +408,7 @@ namespace TaskManager.Presentation
             ApplyBatch(batch.Batch, batch.Enrichments);
 
             var totalElapsed = _timeProvider.GetElapsedTime(startTimestamp);
-            PublishRefresh(totalElapsed.TotalMilliseconds, RefreshOutcome.Ok);
+            PublishOk(totalElapsed.TotalMilliseconds);
         }
 
         private readonly record struct PipelineBatch(ProcessListDiff Batch, Dictionary<int, ProcessEnrichment> Enrichments);

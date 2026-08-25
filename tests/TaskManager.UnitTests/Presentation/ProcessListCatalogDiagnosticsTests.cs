@@ -58,24 +58,43 @@ namespace TaskManager.UnitTests.Presentation
         [Fact]
         public async Task GateBusy_SecondAttempt_PublishesSkipped_ThenFirstCompletesOk()
         {
+            var catalog = CreateCatalog();
             var gateOpened = new TaskCompletionSource();
-            var blockingEnumerator = new GatedEnumerator(gateOpened.Task);
 
-            // the gate holder must be bound at construction; the first refresh parks inside
-            // its Capture until released, deterministically holding _refreshGate
-            var catalog = new ProcessListCatalog(
-                InlineDispatcher, blockingEnumerator, new CountingEnricher(), _settings, _ops,
+            // Replace the injected enumerator with a gated one so the FIRST attempt
+            // holds the refresh gate deterministically until we release it.
+            var gatedCatalog = new ProcessListCatalog(
+                InlineDispatcher,
+                new GatedEnumerator(gateOpened.Task),
+                new CountingEnricher(), _settings, _ops,
                 _time, NullLogger<ProcessListCatalog>.Instance);
 
-            var first = catalog.LoadForTestAsync();       // occupies the refresh gate
+            var observedOutcomes = new List<RefreshOutcome>();
+            var observedSkippedDuration = double.MinValue;
+            gatedCatalog.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(ProcessListCatalog.LastRefresh)
+                    && gatedCatalog.LastRefresh is { } snapshot)
+                {
+                    observedOutcomes.Add(snapshot.Outcome);
+                    if (snapshot.Outcome == RefreshOutcome.Skipped)
+                    {
+                        observedSkippedDuration = snapshot.LastDurationMs;
+                    }
+                }
+            };
 
-            await catalog.LoadForTestAsync();             // hits busy gate -> Skipped
+            var first = gatedCatalog.LoadForTestAsync();  // occupies the gate
+            await gatedCatalog.LoadForTestAsync();        // busy -> Skipped published inline
+
+            observedOutcomes.ShouldBe([RefreshOutcome.Skipped]);   // regression guard under test
+            observedSkippedDuration.ShouldBe(0);                   // no completed Ok yet: carries 0
 
             gateOpened.SetResult();
             await first;
 
-            catalog.LastRefresh.ShouldNotBeNull();
-            catalog.LastRefresh.Outcome.ShouldBe(RefreshOutcome.Ok); // successful attempt wins last-write
+            observedOutcomes.ShouldBe([RefreshOutcome.Skipped, RefreshOutcome.Ok]);
+            gatedCatalog.LastRefresh!.LastDurationMs.ShouldBeGreaterThanOrEqualTo(0);
         }
 
         [Fact]
@@ -119,7 +138,11 @@ namespace TaskManager.UnitTests.Presentation
         {
             public IReadOnlyList<ProcessSnapshot> Capture()
             {
-                gate.Wait(TimeSpan.FromSeconds(5));
+                if (!gate.Wait(TimeSpan.FromSeconds(5)))
+                {
+                    throw new TimeoutException("gate was never opened - test sequencing broke");
+                }
+
                 return [ProcessFakes.Snap(99)];
             }
         }
