@@ -106,11 +106,6 @@ namespace TaskManager.Presentation
         /// <summary>
         /// Best-effort telemetry: diagnostics must never destabilize the pipeline.
         /// A dispatcher failure during ApplyBatch lands here from the warning-catch;
-        /// re-throwing would escape SafePollingRefreshAsync's containment.
-        /// </summary>
-        /// <summary>
-        /// Best-effort telemetry: diagnostics must never destabilize the pipeline.
-        /// A dispatcher failure during ApplyBatch lands here from the warning-catch;
         /// re-throwing would escape SafePollingRefreshAsync's containment. The try/catch
         /// wraps Invoke itself because a failing dispatcher may throw without running the lambda.
         /// </summary>

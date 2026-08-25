@@ -1,10 +1,13 @@
 using CommunityToolkit.Mvvm.Input;
 using NSubstitute;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using TaskManager.Abstractions;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
+using TaskManager.Domain.Primitives;
+using TaskManager.Presentation;
 using TaskManager.Resources.Languages;
 using TaskManager.Services.ErrorHandling;
 using TaskManager.ViewModels;
@@ -29,8 +32,12 @@ namespace TaskManager.UnitTests.ViewModels
             _catalog.Items.Returns(new ReadOnlyObservableCollection<ProcessItem>(new ObservableCollection<ProcessItem>()));
         }
 
-        private MainWindowViewModel CreateViewModel() =>
-            new(_messages, _catalog, _errorHandler, _settings, _windows, _elevation);
+        private MainWindowViewModel CreateViewModel(
+            IProcessListCatalog? catalogOverride = null,
+            ISettingsService? settingsOverride = null,
+            IElevationService? elevationOverride = null) =>
+            new(_messages, catalogOverride ?? _catalog, _errorHandler,
+                settingsOverride ?? _settings, _windows, elevationOverride ?? _elevation);
 
         private static ProcessItem Row(int pid, bool selected = false) =>
             new(new Process { Name = $"p{pid}", Pid = pid, Path = string.Empty }) { IsSelected = selected };
@@ -152,6 +159,63 @@ namespace TaskManager.UnitTests.ViewModels
 
             _windows.Received(1).ShowSetPriority(
                 Arg.Is<IReadOnlyCollection<int>>(pids => pids.OrderBy(x => x).SequenceEqual(new[] { 5, 6 })));
+        }
+
+        [Fact]
+        public void LastRefreshChange_ForwardsOutcomeTextAndKind()
+        {
+            var catalog = Substitute.For<IProcessListCatalog>();
+            var diagnostics = new RefreshDiagnostics(12.5, RefreshOutcome.Ok, DateTimeOffset.Now);
+            catalog.LastRefresh.Returns(diagnostics);
+            var vm = CreateViewModel(catalogOverride: catalog);
+
+            catalog.PropertyChanged += Raise.Event<PropertyChangedEventHandler>(
+                vm, new PropertyChangedEventArgs(nameof(IProcessListCatalog.LastRefresh)));
+
+            vm.OutcomeKind.ShouldBe(RefreshOutcome.Ok);
+            vm.OutcomeText.ShouldBe(Strings.StatusOutcomeOk);
+        }
+
+        [Fact]
+        public void NoDiagnostics_OutcomeText_FallsBackToDash()
+        {
+            var catalog = Substitute.For<IProcessListCatalog>();
+            catalog.LastRefresh.Returns((RefreshDiagnostics?)null);
+            var vm = CreateViewModel(catalogOverride: catalog);
+
+            vm.OutcomeText.ShouldBe("-");
+            vm.OutcomeKind.ShouldBeNull();
+        }
+
+        [Fact]
+        public void PausedSettings_ChangesIntervalText_ToPausedLabel()
+        {
+            var settings = Substitute.For<ISettingsService>();
+            settings.Current.Returns(AppSettings.Defaults with { ProcessesRefreshFrequency = RefreshFrequencyType.High });
+            var vm = CreateViewModel(settingsOverride: settings);
+
+            settings.Current.Returns(AppSettings.Defaults with { ProcessesRefreshFrequency = RefreshFrequencyType.Paused });
+            settings.Changed += Raise.Event<Action<AppSettings>>(settings.Current);
+
+            vm.IntervalText.ShouldBe(Strings.StatusPaused);
+        }
+
+        [Fact]
+        public void ElevationService_DrivesBadgePolarity()
+        {
+            var elevation = Substitute.For<IElevationService>();
+            elevation.IsAdministrator.Returns(true);
+
+            var adminVm = CreateViewModel(elevationOverride: elevation);
+
+            adminVm.ElevationText.ShouldBe(Strings.StatusAdministrator);
+            adminVm.CanRelaunchElevated.ShouldBeFalse();
+
+            elevation.IsAdministrator.Returns(false);
+            var standardVm = CreateViewModel(elevationOverride: elevation);
+
+            standardVm.ElevationText.ShouldBe(Strings.StatusStandard);
+            standardVm.CanRelaunchElevated.ShouldBeTrue();
         }
     }
 }
