@@ -27,6 +27,8 @@ namespace TaskManager.Presentation
         private readonly SemaphoreSlim _refreshGate = new(1, 1);
         private readonly object _pollingLock = new();
         private CancellationTokenSource? _pollingCts;
+        private Task? _pollingLoop;
+        private volatile bool _disposed;
 
         private readonly IDispatcherService _dispatcher;
         private readonly ISystemProcessEnumerator _enumerator;
@@ -85,14 +87,22 @@ namespace TaskManager.Presentation
                 return;
             }
 
-            await _refreshGate.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await _refreshGate.WaitAsync().ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                return; // shutdown won the race; nothing left to refresh
+            }
+
             try
             {
                 await RefreshCoreAsync().ConfigureAwait(false);
             }
             finally
             {
-                _refreshGate.Release();
+                TryReleaseGate();
             }
 
             RestartPolling(); // manual refresh restarts the polling phase (old timer.Restart())
@@ -154,13 +164,13 @@ namespace TaskManager.Presentation
         {
             lock (_pollingLock)
             {
-                if (_pollingCts is not null)
+                if (_disposed || _pollingCts is not null)
                 {
                     return;
                 }
 
                 _pollingCts = new CancellationTokenSource();
-                _ = RunPollingLoopAsync(_pollingCts.Token);
+                _pollingLoop = RunPollingLoopAsync(_pollingCts.Token);
             }
         }
 
@@ -168,9 +178,14 @@ namespace TaskManager.Presentation
         {
             lock (_pollingLock)
             {
+                if (_disposed)
+                {
+                    return;
+                }
+
                 _pollingCts?.Cancel();
                 _pollingCts = new CancellationTokenSource();
-                _ = RunPollingLoopAsync(_pollingCts.Token);
+                _pollingLoop = RunPollingLoopAsync(_pollingCts.Token);
             }
         }
 
@@ -214,10 +229,17 @@ namespace TaskManager.Presentation
         /// </remarks>
         internal async Task SafePollingRefreshAsync()
         {
-            if (!_refreshGate.Wait(0))
+            try
             {
-                _logger.LogDebug("Refresh skipped; previous refresh still in flight");
-                return;
+                if (!_refreshGate.Wait(0))
+                {
+                    _logger.LogDebug("Refresh skipped; previous refresh still in flight");
+                    return;
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                return; // shutdown raced this tick
             }
 
             try
@@ -230,7 +252,22 @@ namespace TaskManager.Presentation
             }
             finally
             {
+                TryReleaseGate();
+            }
+        }
+
+        /// <summary>
+        /// A refresh finishing after Dispose disposed the gate loses the race by design;
+        /// the release must stay silent instead of surfacing as shutdown noise.
+        /// </summary>
+        private void TryReleaseGate()
+        {
+            try
+            {
                 _refreshGate.Release();
+            }
+            catch (ObjectDisposedException)
+            {
             }
         }
 
@@ -322,12 +359,42 @@ namespace TaskManager.Presentation
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
+        /// <summary>
+        /// Terminal shutdown disposal. Order matters: flag + cancel under the polling lock
+        /// (so no new loop can start and RestartPolling becomes a no-op), then observe the
+        /// loop task outside the lock so it cannot touch the gate after it is disposed.
+        /// Idempotent; the gate is disposed last.
+        /// </summary>
         public void Dispose()
         {
-            _pollingCts?.Cancel();
-            _pollingCts?.Dispose();
-            _refreshGate.Dispose();
+            Task? loop;
+
+            lock (_pollingLock)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+
+                _disposed = true;
+                _pollingCts?.Cancel();
+                loop = _pollingLoop;
+            }
+
+            // Bounded wait outside the lock: a mid-refresh loop finishes its tick before we
+            // tear down the gate; if it hangs past the bound, TryReleaseGate absorbs the fallout.
+            try
+            {
+                loop?.Wait(TimeSpan.FromSeconds(5));
+            }
+            catch (AggregateException)
+            {
+                // canceled/faulted outcome must not break disposal
+            }
+
             _settings.Changed -= OnSettingsChanged;
+            _pollingCts?.Dispose();
+            _refreshGate.Dispose(); // last: nothing may enter or release it afterwards
         }
     }
 }

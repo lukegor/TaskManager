@@ -58,6 +58,21 @@ namespace TaskManager
             };
         }
 
+        /// <summary>
+        /// Logs intent while the log pipeline is still alive, then disposes the
+        /// container so every registered IDisposable (logger providers included)
+        /// can flush/release. Must stay last-write-wins over any shutdown work.
+        /// </summary>
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _serviceProvider.GetRequiredService<ILogger<App>>()
+                .LogInformation("Application exiting with code {ExitCode}", e.ApplicationExitCode);
+
+            (_serviceProvider as IDisposable)?.Dispose();
+
+            base.OnExit(e);
+        }
+
         private void SetLanguage()
         {
             var settings = _serviceProvider.GetRequiredService<ISettingsService>();
