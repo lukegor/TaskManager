@@ -60,6 +60,11 @@ Conventions for new code:
 - Categories come from `ILogger<T>` of the owning type.
 - LoggerMessage source generation (CA1848) is deliberately deferred.
 
+## Development notes
+
+- Automated validation must never open windows or launch the GUI. Run
+  `dotnet test` only; interactive checks that start the app (including UAC
+  prompts) require an explicit human request first.
 ## Design docs
 
 Architecture decisions and plans live under `docs/superpowers/` (`specs/`, `plans/`).
