@@ -5,9 +5,9 @@ namespace TaskManager.Domain.Primitives
     public enum ArchitectureType
     {
         [Description("32-bit")]
-        _32BIT,
+        Bit32,
         [Description("64-bit")]
-        _64BIT,
+        Bit64,
         [Description("Unknown")]
         Unknown
     }

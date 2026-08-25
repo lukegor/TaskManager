@@ -39,7 +39,7 @@ namespace TaskManager.UnitTests.Models
             var process = new Process { Name = "a", Path = string.Empty };
             process.PropertyChanged += (_, e) => changed.Add(e.PropertyName!);
 
-            process.ArchitectureType = ArchitectureType._64BIT;
+            process.ArchitectureType = ArchitectureType.Bit64;
 
             changed.ShouldBe(new[] { nameof(Process.ArchitectureType), nameof(Process.ArchitectureTypeDisplay) });
         }

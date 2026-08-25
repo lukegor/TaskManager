@@ -35,8 +35,7 @@ namespace TaskManager.UI.Localization
         public static IEnumerable<string> GetAllLocalizedOptions<TEnum>(Dictionary<string, TEnum> mapping)
             where TEnum : struct, Enum
         {
-            return Enum.GetValues(typeof(TEnum))
-                       .Cast<TEnum>()
+            return Enum.GetValues<TEnum>()
                        .Select(enumValue => MapEnumToLocalString(enumValue, mapping));
         }
 

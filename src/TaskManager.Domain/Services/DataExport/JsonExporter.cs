@@ -7,6 +7,8 @@ namespace TaskManager.Domain.Services.DataExport
 {
 	public class JsonExporter : BaseDataExporter
 	{
+        private static readonly JsonSerializerOptions IndentedOptions = new() { WriteIndented = true };
+
         protected override string Extension => "json";
 
         public JsonExporter(ISettingsService settings, ILogger<JsonExporter> logger) : base(settings, logger)
@@ -15,10 +17,7 @@ namespace TaskManager.Domain.Services.DataExport
 
         protected override void PerformExport<T>(string fullFileName, IEnumerable<string> strings)
         {
-            string jsonString = JsonSerializer.Serialize(strings, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
+            string jsonString = JsonSerializer.Serialize(strings, IndentedOptions);
 
             File.WriteAllText(fullFileName, jsonString);
         }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Globalization;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 
@@ -48,7 +49,7 @@ namespace TaskManager.Domain.Services.DataExport
 
         protected string GenerateFileName(string extension)
         {
-            return $"{FileNamePrefix}{System.DateTime.Now.ToString(DateTime)}.{extension}";
+            return $"{FileNamePrefix}{System.DateTime.Now.ToString(DateTime, CultureInfo.InvariantCulture)}.{extension}";
         }
 
         private static bool TryClassifyFailure(Exception ex, out ExportFailureReason reason)

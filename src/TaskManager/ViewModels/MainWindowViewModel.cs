@@ -55,7 +55,7 @@ namespace TaskManager.ViewModels
 
         #region Bindings
         public int ProcessCount => _catalog.ProcessCount;
-        public IList<DataType> DataTypes => Enum.GetValues<DataType>();
+        public static IList<DataType> DataTypes => Enum.GetValues<DataType>();
         public ReadOnlyObservableCollection<ProcessItem> Processes => _catalog.Items;
         #endregion
 

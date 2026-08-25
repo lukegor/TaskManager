@@ -44,8 +44,11 @@ namespace TaskManager.Services
 
             var previous = Current;
             Current = settings;
-            _logger.LogInformation("Settings updated (language: {Before} -> {After})",
-                previous.Language, settings.Language);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Settings updated (language: {Before} -> {After})",
+                    previous.Language, settings.Language);
+            }
 
             Changed?.Invoke(settings);
         }

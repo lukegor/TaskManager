@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Windows;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Abstractions;
@@ -24,7 +25,9 @@ namespace TaskManager.Services.ErrorHandling
             {
                 _logger.LogError(exception, "Unexpected failure while {OperationContext}", operationContext);
                 _messageService.ShowMessage(
-                    string.Format(Strings.UnexpectedErrorFormat, operationContext, exception.Message),
+#pragma warning disable CA1863 // format string is culture-resolved localization (Strings.*); caching a CompositeFormat would freeze one UI language
+                    string.Format(CultureInfo.CurrentCulture, Strings.UnexpectedErrorFormat, operationContext, exception.Message),
+#pragma warning restore CA1863
                     Strings.Error,
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -41,7 +44,9 @@ namespace TaskManager.Services.ErrorHandling
             {
                 _logger.LogError(exception, "Unhandled exception reached the WPF dispatcher");
                 var choice = _messageService.ShowMessage(
-                    string.Format(Strings.ContinueAfterErrorFormat, exception.Message),
+#pragma warning disable CA1863 // format string is culture-resolved localization (Strings.*); caching a CompositeFormat would freeze one UI language
+                    string.Format(CultureInfo.CurrentCulture, Strings.ContinueAfterErrorFormat, exception.Message),
+#pragma warning restore CA1863
                     Strings.Error,
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Error);

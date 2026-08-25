@@ -4,6 +4,37 @@
     <TargetFramework>net10.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!--
+      'latest' rather than 'latest-recommended': the recommended tier enables CA1707
+      (no underscores in identifiers), which fires ~86 times against the deliberate,
+      repo-wide xUnit Method_Scenario_Expected test-naming convention. Renaming every
+      test was judged worse than losing the newest recommended-only analyzers; revisit
+      if/when test naming changes or per-project scoping becomes available.
+    -->
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!-- Reproducible builds: CI sets CI=true; deterministic + normalized paths -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Local fallback version; CI injects -p:Version (tag or build number) -->
+    <VersionPrefix>0.1.0</VersionPrefix>
+
+    <!-- Emits NeutralResourcesLanguageAttribute for assemblies with localized resources (CA1824) -->
+    <NeutralLanguage>en</NeutralLanguage>
+
+    <!--
+      Deliberate global waivers — each must carry a justification:
+      - CA1848 (use LoggerMessage source-gen delegates): real perf win but requires
+        rewriting every ILogger call site; deferred to its own batch. Structured
+        message templates are already used everywhere, so we keep the benefit that matters.
+      - CA1515 (make types internal): WPF requires public App/views; test assemblies
+        anchor public types by design.
+    -->
+    <NoWarn>$(NoWarn);CA1848;CA1515</NoWarn>
   </PropertyGroup>
 
 </Project>

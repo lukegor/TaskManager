@@ -28,15 +28,18 @@ namespace TaskManager.Domain.Services
                     process.MainModule?.FileName ?? string.Empty,
                     is32Bit switch
                     {
-                        true => ArchitectureType._32BIT,
-                        false => ArchitectureType._64BIT,
+                        true => ArchitectureType.Bit32,
+                        false => ArchitectureType.Bit64,
                         null => ArchitectureType.Unknown
                     });
                 return true;
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
             {
-                logger.LogDebug(ex, "Enrichment failed for PID {Pid}; keeping snapshot-level data", pid);
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug(ex, "Enrichment failed for PID {Pid}; keeping snapshot-level data", pid);
+                }
                 enrichment = new ProcessEnrichment(string.Empty, ArchitectureType.Unknown);
                 return false;
             }
@@ -50,7 +53,10 @@ namespace TaskManager.Domain.Services
             if (IsWow64Process(processHandle, out is32Bit)) { return true; }
 
             int errorCode = Marshal.GetLastWin32Error();
-            logger.LogDebug("IsWow64Process failed for handle {Handle}. Error code: {ErrorCode}", processHandle, errorCode);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("IsWow64Process failed for handle {Handle}. Error code: {ErrorCode}", processHandle, errorCode);
+            }
             return false;
         }
     }

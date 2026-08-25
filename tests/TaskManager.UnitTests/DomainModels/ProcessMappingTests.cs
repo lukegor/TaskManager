@@ -14,7 +14,7 @@ namespace TaskManager.UnitTests.DomainModels
             new(Pid: 42, Name: "alpha", ThreadCount: 7, Ppid: 4, BasePriority: 8);
 
         private static readonly ProcessEnrichment Enrichment =
-            new(@"C:\windows\alpha.exe", ArchitectureType._64BIT);
+            new(@"C:\windows\alpha.exe", ArchitectureType.Bit64);
 
         [Fact]
         public void FromSnapshot_MapsEveryField()
@@ -27,7 +27,7 @@ namespace TaskManager.UnitTests.DomainModels
             process.Ppid.ShouldBe(4);
             process.Priority.ShouldBe(8);
             process.Path.ShouldBe(@"C:\windows\alpha.exe");
-            process.ArchitectureType.ShouldBe(ArchitectureType._64BIT);
+            process.ArchitectureType.ShouldBe(ArchitectureType.Bit64);
         }
 
         [Fact]

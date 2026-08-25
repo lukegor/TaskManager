@@ -19,7 +19,7 @@ namespace TaskManager.Presentation
     /// Pipeline per tick: cheap snapshot → off-thread diff/enrich (pure Domain) → ONE dispatcher
     /// batch applying removes/adds/in-place updates. Polling = one cancellable PeriodicTimer loop.
     /// </summary>
-    internal sealed class ProcessListCatalog : IProcessListCatalog
+    internal sealed class ProcessListCatalog : IProcessListCatalog, IDisposable
     {
         private readonly ObservableCollection<ProcessItem> _items = [];
         private readonly Dictionary<int, ProcessItem> _index = [];
@@ -143,7 +143,10 @@ namespace TaskManager.Presentation
         private void OnSettingsChanged(AppSettings settings)
         {
             var seconds = RefreshFrequencies.SecondsMapping[settings.ProcessesRefreshFrequency];
-            _logger.LogInformation("Polling interval set to {Seconds}s", seconds);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("Polling interval set to {Seconds}s", seconds);
+            }
             RestartPolling(); // picks up new period; Paused stops ticking; resume starts a fresh loop
         }
 
@@ -200,7 +203,7 @@ namespace TaskManager.Presentation
                     // defense in depth: a single unexpected failure must not kill polling
                     // until the next settings change. Real-time backoff on purpose.
                     _logger.LogError(ex, "Polling iteration failed; restarting loop");
-                    await Task.Delay(TimeSpan.FromSeconds(1));
+                    await Task.Delay(TimeSpan.FromSeconds(1), ct);
                 }
             }
         }
@@ -318,5 +321,13 @@ namespace TaskManager.Presentation
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+        public void Dispose()
+        {
+            _pollingCts?.Cancel();
+            _pollingCts?.Dispose();
+            _refreshGate.Dispose();
+            _settings.Changed -= OnSettingsChanged;
+        }
     }
 }

@@ -19,7 +19,7 @@ namespace TaskManager.Domain.Services.DataExport
                 strings.Select(record =>
                     new XElement("Record",
                         typeof(T).GetProperties()
-                            .Where(prop => !prop.IsDefined(typeof(IgnoreSerialization), false))
+                            .Where(prop => !prop.IsDefined(typeof(IgnoreSerializationAttribute), false))
                             .Select(prop => new XElement(prop.Name, prop.GetValue(record)?.ToString() ?? string.Empty)
                             )
                     )

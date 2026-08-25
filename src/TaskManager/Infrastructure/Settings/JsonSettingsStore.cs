@@ -72,13 +72,19 @@ namespace TaskManager.Infrastructure.Settings
 
             if (envelope.Version != CurrentVersion)
             {
-                _logger.LogInformation(
-                    "Settings file version {Actual} differs from expected {Expected}; attempting best-effort read",
-                    envelope.Version, CurrentVersion);
+                if (_logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation(
+                        "Settings file version {Actual} differs from expected {Expected}; attempting best-effort read",
+                        envelope.Version, CurrentVersion);
+                }
             }
 
             var settings = Materialize(envelope.Settings);
-            _logger.LogDebug("Loaded settings from {File}", _filePath);
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug("Loaded settings from {File}", _filePath);
+            }
             return settings;
         }
 

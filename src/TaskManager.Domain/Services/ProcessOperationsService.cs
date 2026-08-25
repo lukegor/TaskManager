@@ -21,7 +21,10 @@ namespace TaskManager.Domain.Services
             {
                 using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.Kill();
-                _logger.LogDebug("Process {Pid} was terminated", pid);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Process {Pid} was terminated", pid);
+                }
             });
         }
 
@@ -31,7 +34,10 @@ namespace TaskManager.Domain.Services
             {
                 using var process = System.Diagnostics.Process.GetProcessById(pid);
                 process.PriorityClass = priority;
-                _logger.LogDebug("Process {Pid} priority set to {Priority}", pid, priority);
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug("Process {Pid} priority set to {Priority}", pid, priority);
+                }
             });
         }
 

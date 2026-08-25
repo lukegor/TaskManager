@@ -1,3 +1,4 @@
+using System.Globalization;
 using TaskManager.Domain.Models;
 using TaskManager.Resources.Languages;
 
@@ -7,8 +8,10 @@ namespace TaskManager.ViewModels
     internal static class OperationSummaryReporter
     {
         public static string FormatPartialFailures(ProcessOpSummary summary) =>
-            string.Format(Strings.OpsCompletedWithFailuresFormat,
+#pragma warning disable CA1863 // format string is culture-resolved localization (Strings.*); caching a CompositeFormat would freeze one UI language
+            string.Format(CultureInfo.CurrentCulture, Strings.OpsCompletedWithFailuresFormat,
                 summary.SucceededPids.Count,
                 summary.SucceededPids.Count + summary.Failures.Count);
+#pragma warning restore CA1863
     }
 }

@@ -1,5 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
 using TaskManager.Abstractions;
@@ -90,7 +91,9 @@ namespace TaskManager.ViewModels
                 }
 
                 _messageService.ShowMessage(
-                    string.Format(Strings.ExportFailedFormat, DirPath) + " " + DescribeFailure(result.FailureReason!.Value),
+#pragma warning disable CA1863 // format string is culture-resolved localization (Strings.*); caching a CompositeFormat would freeze one UI language
+                    string.Format(CultureInfo.CurrentCulture, Strings.ExportFailedFormat, DirPath) + " " + DescribeFailure(result.FailureReason!.Value),
+#pragma warning restore CA1863
                     Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }, "exporting process data");

@@ -53,7 +53,7 @@ namespace TaskManager.UnitTests.TestSupport
         public override bool TryEnrich(int pid, out ProcessEnrichment enrichment)
         {
             Calls++;
-            enrichment = new ProcessEnrichment($@"C:\fake-{pid}-{Calls}.exe", ArchitectureType._64BIT);
+            enrichment = new ProcessEnrichment($@"C:\fake-{pid}-{Calls}.exe", ArchitectureType.Bit64);
             return true;
         }
     }

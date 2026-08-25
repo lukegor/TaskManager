@@ -56,10 +56,10 @@ namespace TaskManager.Domain.Services.DataExport
             workbook.SaveAs(fullFileName);
         }
 
-        private string[] GetColumnHeaders(Type t)
+        private static string[] GetColumnHeaders(Type t)
 		{
 			PropertyInfo[] properties = t.GetProperties()
-				.Where(prop => !prop.IsDefined(typeof(IgnoreSerialization), false) &&
+				.Where(prop => !prop.IsDefined(typeof(IgnoreSerializationAttribute), false) &&
 										!prop.IsDefined(typeof(JsonIgnoreAttribute), false))
 				.ToArray();
 

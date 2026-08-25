@@ -65,9 +65,9 @@ namespace TaskManager
             LanguageDictionary Languages = new LanguageDictionary();
 
             CultureInfo culture;
-            if (!string.IsNullOrEmpty(savedLanguage) && Languages.ContainsKey(savedLanguage))
+            if (!string.IsNullOrEmpty(savedLanguage) && Languages.TryGetValue(savedLanguage, out var savedCulture))
             {
-                culture = Languages[key: savedLanguage];
+                culture = savedCulture;
             }
             else culture = CultureInfo.CurrentCulture; // Use the current culture in release mode
             CultureInfo.DefaultThreadCurrentCulture = culture;
@@ -78,7 +78,7 @@ namespace TaskManager
             System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
         }
 
-        private void ConfigureServices(IServiceCollection services)
+        private static void ConfigureServices(IServiceCollection services)
         {
             services.AddLogging(logging =>
             {
