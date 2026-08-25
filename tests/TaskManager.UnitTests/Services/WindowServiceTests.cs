@@ -60,6 +60,16 @@ namespace TaskManager.UnitTests.Services
         }
 
         [WpfFact]
+        public void CreateAboutDialog_PairsWindowWithAboutViewModel()
+        {
+            var (window, viewModel) = CreateService().CreateAboutDialog();
+
+            window.ShouldNotBeNull();
+            window.DataContext.ShouldBe(viewModel);
+            viewModel.ShouldNotBeNull();
+        }
+
+        [WpfFact]
         public async Task CreateExportDialog_SeedsWithMaterializedProcesses()
         {
             var directory = Path.Combine(Path.GetTempPath(), $"tm-winsvc-{Guid.NewGuid():N}");

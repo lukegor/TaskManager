@@ -36,6 +36,8 @@ namespace TaskManager.Services
 
         public void ShowSettings() => CreateSettingsDialog().Window.ShowDialog();
 
+        public void ShowAbout() => CreateAboutDialog().Window.ShowDialog();
+
         public void ShowExport(IReadOnlyList<Process> processes) =>
             CreateExportDialog(processes).Window.ShowDialog();
 
@@ -44,6 +46,13 @@ namespace TaskManager.Services
             var dialog = CreatePriorityDialog(pids);
             dialog.Window.ShowDialog();
             return dialog.ViewModel.Confirmed;
+        }
+
+        internal (AboutWindow Window, AboutWindowViewModel ViewModel) CreateAboutDialog()
+        {
+            var viewModel = new AboutWindowViewModel();
+            var window = new AboutWindow { DataContext = viewModel };
+            return (window, viewModel);
         }
 
         internal (SettingsWindow Window, SettingsWindowViewModel ViewModel) CreateSettingsDialog()

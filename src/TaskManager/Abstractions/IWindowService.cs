@@ -13,5 +13,8 @@ namespace TaskManager.Abstractions
 
         /// <summary>Opens the priority dialog for the given PIDs. True = user confirmed and the operation applied.</summary>
         bool ShowSetPriority(IReadOnlyCollection<int> pids);
+
+        /// <summary>Opens the about dialog modally.</summary>
+        void ShowAbout();
     }
 }

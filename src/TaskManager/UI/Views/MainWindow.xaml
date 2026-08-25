@@ -34,6 +34,9 @@
                 <MenuItem Header="{x:Static resx:Strings.TerminateProcesses}" Command="{Binding TerminateCommand}"/>
             </MenuItem>
             <MenuItem Header="{x:Static resx:Strings.Export}" Command="{Binding ExportCommand}"/>
+            <MenuItem Header="{x:Static resx:Strings.HelpMenu}">
+                <MenuItem Header="{x:Static resx:Strings.AboutMenu}" Command="{Binding OpenAboutCommand}"/>
+            </MenuItem>
             <MenuItem Header="{x:Static resx:Strings.SettingsStr}" Command="{Binding OpenSettingsCommand}"/>
         </Menu>
 		<ToolBar HorizontalAlignment="Stretch" Height="36" Grid.Row="1" ToolBarTray.IsLocked="True">

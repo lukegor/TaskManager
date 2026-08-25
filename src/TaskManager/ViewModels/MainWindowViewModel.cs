@@ -43,6 +43,7 @@ namespace TaskManager.ViewModels
             TerminateCommand = new AsyncRelayCommand(TerminateAsync);
             SetPriorityCommand = new AsyncRelayCommand(SetPriorityAsync);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
+            OpenAboutCommand = new RelayCommand(() => _windows.ShowAbout());
             RefreshCommand = new AsyncRelayCommand(() =>
                 _errorHandler.GuardAsync(() => _catalog.PerformRefreshAsync(isUserInitiated: true), "refreshing process list"));
             InitializeCommand = new AsyncRelayCommand(() =>
@@ -118,6 +119,7 @@ namespace TaskManager.ViewModels
         public AsyncRelayCommand TerminateCommand { get; }
         public AsyncRelayCommand SetPriorityCommand { get; }
         public ICommand OpenSettingsCommand { get; }
+        public ICommand OpenAboutCommand { get; }
         public ICommand RefreshCommand { get; }
         public AsyncRelayCommand InitializeCommand { get; }
         public ICommand RelaunchElevatedCommand { get; }
