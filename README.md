@@ -1,5 +1,7 @@
 # Task Manager
 
+[![CI](https://github.com/lukegor/TaskManager/actions/workflows/ci.yml/badge.svg)](https://github.com/lukegor/TaskManager/actions/workflows/ci.yml)
+
 A Windows process explorer built with WPF on .NET 10: live process list with low-overhead diffing,
 per-process detail enrichment (path/bitness via native APIs), priority management, settings, and
 data export (Excel/CSV/JSON/XML/TXT). English and Polish UI.

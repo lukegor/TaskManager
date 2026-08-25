@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # Installs the exact SDK requested by global.json (10.0.303, rollForward latestFeature)
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+
+      - name: Compute version
+        id: ver
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -match '^refs/tags/v(\d+\.\d+\.\d+)$') {
+            $version = $Matches[1]
+          } else {
+            $version = "0.${{ github.run_number }}.0"
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Restore
+        run: dotnet restore TaskManager.slnx
+
+      # CI=true makes ContinuousIntegrationBuild deterministic (set in Directory.Build.props);
+      # TreatWarningsAsErrors turns any warning into a failed run.
+      - name: Build
+        run: >
+          dotnet build TaskManager.slnx -c Release --no-restore --nologo
+          -p:Version=${{ steps.ver.outputs.version }}
+          -p:SourceRevisionId=${{ github.sha }}
+
+      # MTP-native coverage: no --nologo (rejected by the test platform), explicit output file
+      - name: Unit tests with coverage
+        run: >
+          dotnet test tests/TaskManager.UnitTests -c Release --no-build
+          --coverage --coverage-output-format cobertura
+          --coverage-output ${{ github.workspace }}/artifacts/coverage/coverage.cobertura.xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: artifacts/coverage/*.cobertura.xml
+          if-no-files-found: error
