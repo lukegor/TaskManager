@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Validation policy:** never launch the GUI during automated steps; interactive checks (starting the app, UAC prompts) require explicit human request first. See README "Development notes".
+
 **Goal:** Live status strip (count · interval/paused · refresh-outcome chip · elevation chip with relaunch action), an About dialog fed by stamped assembly metadata, and a single-instance guard with activate-existing-window semantics.
 
 **Architecture:** The catalog (single writer of polling truth) publishes an immutable `RefreshDiagnostics` through the same INPC/dispatcher discipline as `ProcessCount`; dialogs flow through `IWindowService`; a named-mutex `SingleInstanceGuard` gates startup, with a `--await-instance` argument giving restart/relaunch successors a bounded handoff window so plain launches never wait.

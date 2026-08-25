@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Validation policy:** never launch the GUI during automated steps; interactive checks (starting the app, UAC prompts) require explicit human request first. See README "Development notes".
+
 **Goal:** Replace synchronous file logging with an async bounded-channel writer (flush-on-dispose, rollover retention, overflow notices) and add structured batch-outcome/refresh-tick logging plus documented conventions.
 
 **Architecture:** Producers format and enqueue into a bounded `Channel<LogEntry>` (DropOldest); one drain task owns all file I/O, flushing when the queue empties and completing pending writes when disposal completes the channel (already wired via `App.OnExit` container disposal). L2 adds one structured Information entry per batch operation and one guarded Debug trace per refresh tick, verified through a hand-rolled recording logger.
