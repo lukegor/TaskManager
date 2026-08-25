@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TaskManager.Abstractions;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Services;
@@ -11,9 +12,15 @@ namespace TaskManager.Infrastructure.Composition
     /// <summary>Registrations for core/presentation state and OS-facing services.</summary>
     internal static class CoreServicesRegistration
     {
-        public static IServiceCollection AddCoreServices(this IServiceCollection services)
+        public static IServiceCollection AddCoreServices(this IServiceCollection services, string? settingsDirectory)
         {
-            services.AddSingleton<ISettingsStore, JsonSettingsStore>();
+            services.AddSingleton<ISettingsStore>(sp =>
+            {
+                var logger = sp.GetRequiredService<ILogger<JsonSettingsStore>>();
+                return string.IsNullOrEmpty(settingsDirectory)
+                    ? new JsonSettingsStore(logger)
+                    : new JsonSettingsStore(settingsDirectory, logger);
+            });
             services.AddSingleton<SettingsService>();
             services.AddSingleton<ISettingsService>(sp => sp.GetRequiredService<SettingsService>());
             services.AddSingleton<IDispatcherService, WpfDispatcherService>();

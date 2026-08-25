@@ -17,11 +17,17 @@ namespace TaskManager.Infrastructure
 
         private Mutex? _mutex;
 
-        public SingleInstanceGuard(bool waitForExistingRelease)
+        private readonly string _mutexName;
+
+        public SingleInstanceGuard(bool waitForExistingRelease, string? instanceName = null)
         {
+            _mutexName = string.IsNullOrEmpty(instanceName)
+                ? MutexName
+                : $"{MutexName}.{instanceName}";
+
             if (!waitForExistingRelease)
             {
-                _mutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
+                _mutex = new Mutex(initiallyOwned: true, _mutexName, out var createdNew);
                 IsFirstInstance = createdNew;
                 if (!IsFirstInstance)
                 {
@@ -33,11 +39,11 @@ namespace TaskManager.Infrastructure
             }
 
             // Handoff: attach to the existing mutex and wait for the predecessor to release.
-            _ = Mutex.TryOpenExisting(MutexName, out var existing);
+            _ = Mutex.TryOpenExisting(_mutexName, out var existing);
             if (existing is null)
             {
                 // predecessor exited before we attached: we are the successor owner.
-                _mutex = new Mutex(initiallyOwned: true, MutexName, out var createdNew);
+                _mutex = new Mutex(initiallyOwned: true, _mutexName, out var createdNew);
                 IsFirstInstance = createdNew;
                 if (!IsFirstInstance)
                 {

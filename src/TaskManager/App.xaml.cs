@@ -25,7 +25,9 @@ namespace TaskManager
         protected override void OnStartup(StartupEventArgs e)
         {
             var awaitInstance = e.Args.Contains("--await-instance", StringComparer.Ordinal);
-            _guard = new SingleInstanceGuard(awaitInstance);
+            _guard = new SingleInstanceGuard(
+                awaitInstance,
+                Environment.GetEnvironmentVariable(TaskManagerEnvironment.InstanceName));
             if (!_guard.IsFirstInstance)
             {
                 _guard.ActivateFirstInstanceWindow();
@@ -110,15 +112,21 @@ namespace TaskManager
             System.Threading.Thread.CurrentThread.CurrentUICulture = culture;
         }
 
-        private static void ConfigureServices(IServiceCollection services)
+        private void ConfigureServices(IServiceCollection services)
         {
+            var logDirectory = Environment.GetEnvironmentVariable(TaskManagerEnvironment.LogDir);
+
             services.AddLogging(logging =>
             {
                 logging.SetMinimumLevel(ResolveMinimumLogLevel());
-                logging.AddProvider(new FileLoggerProvider());
+                logging.AddProvider(string.IsNullOrEmpty(logDirectory)
+                    ? new FileLoggerProvider()
+                    : new FileLoggerProvider(logDirectory));
             });
 
-            services.AddCoreServices();
+            services.AddCoreServices(
+                Environment.GetEnvironmentVariable(TaskManagerEnvironment.SettingsDir));
+
             services.AddUiServices();
         }
 

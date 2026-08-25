@@ -80,6 +80,16 @@ namespace TaskManager.UnitTests.Infrastructure
         }
 
         [Fact]
+        public void SuffixedInstance_DoesNotCollide_WithUnsuffixed()
+        {
+            using var plain = new SingleInstanceGuard(waitForExistingRelease: false);
+            using var suffixed = new SingleInstanceGuard(waitForExistingRelease: false, instanceName: "uitest");
+
+            plain.IsFirstInstance.ShouldBeTrue();
+            suffixed.IsFirstInstance.ShouldBeTrue();
+        }
+
+        [Fact]
         public async Task HandoffMode_WaitsForPredecessorRelease()
         {
             const int maxAttempts = 3;
