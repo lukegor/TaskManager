@@ -8,7 +8,8 @@ namespace TaskManager.Infrastructure
     /// Per-session single instancing via a named mutex. Normal mode decides instantly
     /// (createdNew); handoff mode (restart/relaunch successors carrying --await-instance)
     /// waits up to 10 s for the predecessor to release. Activation brings the first
-    /// instance's window to the foreground.
+    /// instance's window to the foreground; namespaced (suffixed) automation islands
+    /// skip activation so they never collide with — or foreground — a real instance.
     /// </summary>
     internal sealed partial class SingleInstanceGuard : IDisposable
     {
@@ -19,9 +20,12 @@ namespace TaskManager.Infrastructure
 
         private readonly string _mutexName;
 
+        private readonly bool _ownsPrimaryNamespace; // true only for the unsuffixed production namespace
+
         public SingleInstanceGuard(bool waitForExistingRelease, string? instanceName = null)
         {
-            _mutexName = string.IsNullOrEmpty(instanceName)
+            _ownsPrimaryNamespace = string.IsNullOrEmpty(instanceName);
+            _mutexName = _ownsPrimaryNamespace
                 ? MutexName
                 : $"{MutexName}.{instanceName}";
 
@@ -76,8 +80,17 @@ namespace TaskManager.Infrastructure
 
         public bool IsFirstInstance { get; private set; }
 
+        /// <summary>
+        /// Brings the first instance's window to the foreground. Automation namespaces
+        /// (suffixed) are islands: they never activate foreign windows.
+        /// </summary>
         public void ActivateFirstInstanceWindow()
         {
+            if (!_ownsPrimaryNamespace)
+            {
+                return;
+            }
+
             var currentId = Environment.ProcessId;
             var name = Path.GetFileNameWithoutExtension(Environment.ProcessPath);
 
