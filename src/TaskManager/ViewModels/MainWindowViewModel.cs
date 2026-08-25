@@ -1,41 +1,63 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using TaskManager.Domain.Abstractions;
 using TaskManager.Abstractions;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
-using TaskManager.Domain.Services;
-using TaskManager.Services.Factories;
-using TaskManager.Services.ErrorHandling;
-using TaskManager.Resources.Languages;
-using TaskManager.UI.Views;
 using TaskManager.Domain.Primitives;
-using TaskManager.ViewModels.Abstraction;
+using TaskManager.Resources.Languages;
+using TaskManager.Services.ErrorHandling;
 
 namespace TaskManager.ViewModels
 {
     /// <summary>
-    /// Viewmodel for <see cref="MainWindow"/>
+    /// Viewmodel for MainWindow. Headless-testable: depends only on interfaces; all window
+    /// orchestration goes through IWindowService; startup happens via InitializeCommand
+    /// invoked once by the composition root.
     /// </summary>
-    internal class MainWindowViewModel : ViewModelBase
+    internal class MainWindowViewModel : ObservableObject
     {
-        #region ALL_FIELDS
-        // services
-        private readonly IServiceProvider _serviceProvider;
         private readonly IMessageService _messageService;
-        private readonly ProcessManager _processManager;
-        private readonly ProcessOperationsService _processOps;
+        private readonly IProcessListCatalog _catalog;
         private readonly IErrorHandler _errorHandler;
         private readonly ISettingsService _settings;
+        private readonly IWindowService _windows;
+
+        public MainWindowViewModel(IMessageService messageService, IProcessListCatalog catalog,
+            IErrorHandler errorHandler, ISettingsService settings, IWindowService windows)
+        {
+            _messageService = messageService;
+            _catalog = catalog;
+            _errorHandler = errorHandler;
+            _settings = settings;
+            _windows = windows;
+
+            ExportCommand = new RelayCommand(Export);
+            TerminateCommand = new RelayCommand(TerminateProcesses);
+            SetPriorityCommand = new RelayCommand(SetPriority);
+            OpenSettingsCommand = new RelayCommand(OpenSettings);
+            RefreshCommand = new AsyncRelayCommand(() =>
+                _errorHandler.GuardAsync(() => _catalog.PerformRefreshAsync(isUserInitiated: true), "refreshing process list"));
+            InitializeCommand = new AsyncRelayCommand(() =>
+                _errorHandler.GuardAsync(() => _catalog.InitializeAsync(), "loading initial process list"));
+
+            // count forwarder: ProcessCount is owned by the catalog
+            _catalog.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(IProcessListCatalog.ProcessCount))
+                {
+                    OnPropertyChanged(nameof(ProcessCount));
+                }
+            };
+        }
 
         #region Bindings
-        public int ProcessCount => _processManager.ProcessCount;
+        public int ProcessCount => _catalog.ProcessCount;
         public IList<DataType> DataTypes => Enum.GetValues<DataType>();
-
-        public ReadOnlyObservableCollection<ProcessItem> Processes => _processManager.Items;
+        public ReadOnlyObservableCollection<ProcessItem> Processes => _catalog.Items;
         #endregion
 
         #region PureUI_Bindings
@@ -43,93 +65,50 @@ namespace TaskManager.ViewModels
 
         public int SelectedTabIndex { get; set => SetProperty(ref field, value); }
         #endregion
+
+        #region Commands
+        public ICommand ExportCommand { get; }
+        public ICommand TerminateCommand { get; }
+        public ICommand SetPriorityCommand { get; }
+        public ICommand OpenSettingsCommand { get; }
+        public ICommand RefreshCommand { get; }
+        public AsyncRelayCommand InitializeCommand { get; }
         #endregion
 
-		#region Commands
-        public ICommand ExportCommand { get; private set; }
-        public ICommand TerminateCommand { get; private set; }
-        public ICommand SetPriorityCommand { get; private set; }
-        public ICommand OpenSettingsCommand { get; private set; }
-        public ICommand RefreshCommand { get; private set; }
-        #endregion
-
-        public MainWindowViewModel(IServiceProvider serviceProvider,
-            IMessageService messageService,
-            ProcessManager processManager,
-            ProcessOperationsService processOps,
-            IErrorHandler errorHandler,
-            ISettingsService settings)
+        private void OpenSettings()
         {
-            _serviceProvider = serviceProvider;
-            _messageService = messageService;
-            _processManager = processManager;
-            _processOps = processOps;
-            _errorHandler = errorHandler;
-            _settings = settings;
-
-            ExportCommand = new RelayCommand(Export);
-            TerminateCommand = new RelayCommand(TerminateProcesses);
-            SetPriorityCommand = new RelayCommand(SetPriority);
-            OpenSettingsCommand = new RelayCommand(OpenSettings);
-            RefreshCommand = new AsyncRelayCommand(() =>
-                _errorHandler.GuardAsync(() => _processManager.PerformRefresh(isUserInitiated: true), "refreshing process list"));
-
-            // load running processes in the background; the window must not block on enumeration
-            _ = _errorHandler.GuardAsync(() => _processManager.LoadProcesses(), "loading initial process list");
-            _processManager.StartPollingProcesses();
-
-            // count forwarder: ProcessCount is owned by ProcessManager now
-            _processManager.PropertyChanged += (_, e) =>
-            {
-                if (e.PropertyName == nameof(ProcessManager.ProcessCount))
-                {
-                    OnPropertyChanged(nameof(ProcessCount));
-                }
-            };
-        }
-
-		private void OpenSettings()
-		{
             // resx/x:Static localization is baked at compile time, so a language
-            // switch still requires a restart; the decision lives here (composition
-            // flow), not in the settings service.
+            // switch still requires a restart; the decision lives here (composition flow).
             var languageBefore = _settings.Current.Language;
 
-            var settingsWindow = _serviceProvider.GetRequiredService<SettingsWindow>();
-            settingsWindow.ShowDialog();
+            _windows.ShowSettings();
 
             if (_settings.Current.Language != languageBefore)
             {
                 App.Restart();
             }
-		}
+        }
 
-		private void Export()
-		{
-            DataExportWindow exportWindow = _serviceProvider.GetRequiredService<DataExportWindow>();
-            var processes = _processManager.SnapshotForExport();
-            exportWindow.DataContext = _serviceProvider.GetRequiredService<DataExportViewModelFactory>().Create(processes);
-
-            exportWindow.ShowDialog();
-		}
+        private void Export() => _windows.ShowExport(_catalog.SnapshotForExport());
 
         private IEnumerable<ProcessItem> GetSelectedProcesses() => Processes.Where(p => p.IsSelected);
 
         private void TerminateProcesses()
         {
-            if (!ValidatePreconditions(Preconditions.SelectedAnyProcess))
+            if (!EnsureSelection())
             {
                 return;
             }
-            if (_messageService.ShowMessage(Strings.AskingForConfirmation, Strings.Confirm, MessageBoxButton.OKCancel, MessageBoxImage.Warning)
-                == MessageBoxResult.Cancel)
+
+            if (_messageService.ShowMessage(Strings.AskingForConfirmation, Strings.Confirm,
+                    MessageBoxButton.OKCancel, MessageBoxImage.Warning) == MessageBoxResult.Cancel)
             {
                 return;
             }
 
             _errorHandler.Guard(() =>
             {
-                var summary = _processOps.TerminateProcesses(
+                var summary = _catalog.TerminateProcesses(
                     GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray());
                 ReportPartialFailures(summary);
             });
@@ -142,38 +121,31 @@ namespace TaskManager.ViewModels
                 return;
             }
 
-            var total = summary.SucceededPids.Count + summary.Failures.Count;
-            _messageService.ShowMessage(
-                string.Format(Strings.OpsCompletedWithFailuresFormat, summary.SucceededPids.Count, total),
+            _messageService.ShowMessage(OperationSummaryReporter.FormatPartialFailures(summary),
                 Strings.Error, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         private void SetPriority()
         {
-            if (!ValidatePreconditions(Preconditions.SelectedAnyProcess))
+            if (!EnsureSelection())
             {
                 return;
             }
 
-            var factory = _serviceProvider.GetRequiredService<SetPriorityVVmFactory>();
-            SetPriorityWindow setPriorityWindow = factory.Create(
+            _windows.ShowSetPriority(
                 GetSelectedProcesses().Select(x => Convert.ToInt32(x.Process.Pid)).ToArray());
-
-            setPriorityWindow.ShowDialog();
         }
 
-        private bool ValidatePreconditions(Preconditions preconditions)
+        private bool EnsureSelection()
         {
-			if ((preconditions & Preconditions.SelectedAnyProcess) == Preconditions.SelectedAnyProcess)
-			{
-				if (!Processes.Any(x => x.IsSelected))
-				{
-					_messageService.ShowMessage(Strings.SelectProcess, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-					return false;
-				}
-			}
+            if (Processes.Any(x => x.IsSelected))
+            {
+                return true;
+            }
 
-            return true;
+            _messageService.ShowMessage(Strings.SelectProcess, Strings.Error,
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
         }
     }
 }

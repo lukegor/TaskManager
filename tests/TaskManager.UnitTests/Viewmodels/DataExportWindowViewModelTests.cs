@@ -1,27 +1,24 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using System.IO;
 using System.Windows;
-using TaskManager.Domain.Abstractions;
 using TaskManager.Abstractions;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Domain.Services.DataExport;
 using TaskManager.Services.ErrorHandling;
-using TaskManager.Services.Factories;
 using TaskManager.ViewModels;
 using TaskManager.Domain.Primitives;
 using DataTypeEnum = TaskManager.Domain.Primitives.DataType;
-using ExportationTypeEnum = TaskManager.Domain.Primitives.ExportationType;
 
-namespace TaskManager.UnitTests
+namespace TaskManager.UnitTests.ViewModels
 {
     public class DataExportWindowViewModelTests : IDisposable
     {
-        private readonly IServiceProvider _serviceProvider = Substitute.For<IServiceProvider>();
         private readonly IMessageService _messageService = Substitute.For<IMessageService>();
-        private readonly DataExporterFactory _exporterFactory =
-            Substitute.For<DataExporterFactory>(Substitute.For<IServiceProvider>());
+        private readonly Dictionary<DataTypeEnum, BaseDataExporter> _registeredExporters = new();
+        private Exception? _selectorCrash;
+        private readonly IFolderPicker _folderPicker = Substitute.For<IFolderPicker>();
         private readonly string _tempDirectory =
             Path.Combine(Path.GetTempPath(), $"tm-exportvm-tests-{Guid.NewGuid():N}");
         private readonly DataExportWindowViewModel _viewModel;
@@ -29,27 +26,35 @@ namespace TaskManager.UnitTests
         public DataExportWindowViewModelTests()
         {
             Directory.CreateDirectory(_tempDirectory);
-            // NSubstitute cannot intercept the GetRequiredService extension method,
-            // so we configure the underlying GetService instance method it delegates to.
-            _serviceProvider.GetService(typeof(DataExporterFactory)).Returns(_exporterFactory);
-            _viewModel = new DataExportWindowViewModel(
-                _serviceProvider,
-                Substitute.For<ISettingsService>(),
+            _viewModel = CreateViewModel([]);
+            _viewModel.DirPath = _tempDirectory;
+        }
+
+        private DataExportWindowViewModel CreateViewModel(IReadOnlyList<Process> processes)
+        {
+            return new DataExportWindowViewModel(
                 _messageService,
                 new UiErrorHandler(NullLogger<UiErrorHandler>.Instance, Substitute.For<IMessageService>()),
-                []);
-            _viewModel.DirPath = _tempDirectory;
+                dataType =>
+                {
+                    if (_selectorCrash is not null)
+                    {
+                        throw _selectorCrash;
+                    }
+
+                    return _registeredExporters[dataType];
+                },
+                _folderPicker,
+                processes);
         }
 
         [Fact]
         public void TryExport_Success_WritesFileAndReturnsTrue()
         {
-            var exporter = new TxtExporter(NewSettings(), NullLogger<BaseDataExporter>.Instance);
-            _exporterFactory
-                .CreateDataExporter(DataTypeEnum.Txt)
-                .Returns(exporter);
+            _registeredExporters[DataTypeEnum.Txt] =
+                new TxtExporter(NewSettings(), NullLogger<BaseDataExporter>.Instance);
 
-            var success = _viewModel.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt);
+            var success = _viewModel.TryExport(DataTypeEnum.Txt);
 
             success.ShouldBeTrue();
             Directory.GetFiles(_tempDirectory, "record-*").ShouldNotBeEmpty();
@@ -58,12 +63,9 @@ namespace TaskManager.UnitTests
         [Fact]
         public void TryExport_Failure_ShowsSingleMessageAndReturnsFalse()
         {
-            var exporter = new ThrowingExporter(NewSettings());
-            _exporterFactory
-                .CreateDataExporter(DataTypeEnum.Txt)
-                .Returns(exporter);
+            _registeredExporters[DataTypeEnum.Txt] = new ThrowingExporter(NewSettings());
 
-            var success = _viewModel.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt);
+            var success = _viewModel.TryExport(DataTypeEnum.Txt);
 
             success.ShouldBeFalse();
             _messageService.Received(1).ShowMessage(
@@ -71,15 +73,11 @@ namespace TaskManager.UnitTests
         }
 
         [Fact]
-        public void TryExport_UnexpectedFactoryCrash_IsGuardedAndDoesNotThrow()
+        public void TryExport_UnexpectedFactoryCrash_IsGuardedAndReturnsFalse()
         {
-            _exporterFactory
-                .When(f => f.CreateDataExporter(DataTypeEnum.Txt))
-                .Do(_ => throw new InvalidOperationException("factory exploded"));
+            _selectorCrash = new InvalidOperationException("factory exploded");
 
-            var success = _viewModel.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt);
-
-            success.ShouldBeFalse();
+            _viewModel.TryExport(DataTypeEnum.Txt).ShouldBeFalse();
         }
 
         [Fact]
@@ -90,25 +88,54 @@ namespace TaskManager.UnitTests
                 new() { Name = "p1", Pid = 1, Path = string.Empty },
                 new() { Name = "p2", Pid = 2, Path = string.Empty },
             };
-            var exporter = new TxtExporter(NewSettings(), NullLogger<BaseDataExporter>.Instance);
-            _exporterFactory.CreateDataExporter(DataTypeEnum.Txt).Returns(exporter);
-            var vm = new DataExportWindowViewModel(
-                _serviceProvider,
-                Substitute.For<ISettingsService>(),
-                _messageService,
-                new UiErrorHandler(NullLogger<UiErrorHandler>.Instance, Substitute.For<IMessageService>()),
-                processes);
+            _registeredExporters[DataTypeEnum.Txt] =
+                new TxtExporter(NewSettings(), NullLogger<BaseDataExporter>.Instance);
+            var vm = CreateViewModel(processes);
             vm.DirPath = _tempDirectory;
-            vm.Exportation = ExportationTypeEnum.Processes;
-            vm.DataType = DataTypeEnum.Txt;
 
             processes.Clear(); // caller-side mutation after handoff must not leak into the dialog
 
-            vm.TryExport(ExportationTypeEnum.Processes, DataTypeEnum.Txt).ShouldBeTrue();
+            vm.TryExport(DataTypeEnum.Txt).ShouldBeTrue();
 
             var written = File.ReadAllLines(Directory.GetFiles(_tempDirectory, "record-*").Single());
             written.Count(line => line.Contains("p1")).ShouldBe(1);
             written.Count(line => line.Contains("p2")).ShouldBe(1);
+        }
+
+        [Fact]
+        public void SelectFolder_PickedResult_AssignedToDirPath()
+        {
+            var picked = Path.Combine(_tempDirectory, "picked");
+            Directory.CreateDirectory(picked);
+            _folderPicker.PickFolder().Returns(picked);
+
+            _viewModel.SelectFolderCommand.Execute(null);
+
+            _viewModel.DirPath.ShouldBe(picked);
+        }
+
+        [Fact]
+        public void SelectFolder_Cancelled_ClearsDirPath_PreservingPreviousUx()
+        {
+            _folderPicker.PickFolder().Returns((string?)null);
+
+            _viewModel.SelectFolderCommand.Execute(null);
+
+            _viewModel.DirPath.ShouldBeEmpty();
+        }
+
+        [Fact]
+        public void OnConfirm_MissingOptions_ShowsError_DoesNotClose()
+        {
+            var closed = false;
+            _viewModel.RequestClose += (_, _) => closed = true;
+
+            _viewModel.OnConfirmClick.Execute(null);
+
+            _messageService.Received(1).ShowMessage(
+                Arg.Any<string>(), Arg.Any<string>(), MessageBoxButton.OK, MessageBoxImage.Error);
+            closed.ShouldBeFalse();
+            _viewModel.Confirmed.ShouldBeFalse();
         }
 
         private static ISettingsService NewSettings()
@@ -143,4 +170,3 @@ namespace TaskManager.UnitTests
         }
     }
 }
-

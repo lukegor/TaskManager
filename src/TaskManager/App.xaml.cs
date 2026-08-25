@@ -10,7 +10,7 @@ using TaskManager.Infrastructure.Logging;
 using TaskManager.Infrastructure.Settings;
 using TaskManager.Presentation;
 using TaskManager.Services.ErrorHandling;
-using TaskManager.Services.Factories;
+using TaskManager.Domain.Services.DataExport;
 using TaskManager.UI.Views;
 using TaskManager.Domain.Primitives;
 using TaskManager.ViewModels;
@@ -105,18 +105,20 @@ namespace TaskManager
             services.AddSingleton<IProcessOperations>(sp => sp.GetRequiredService<ProcessOperationsService>());
             services.AddSingleton<ProcessListCatalog>();
             services.AddSingleton<IProcessListCatalog>(sp => sp.GetRequiredService<ProcessListCatalog>());
-            services.AddSingleton<ProcessManager>();
-            services.AddSingleton<TimerManager>();
-            services.AddTransient<FolderSelector>();
-
-            services.AddSingleton<DataExporterFactory>(); // services.AddTransient<DataExporterFactory>();
-            services.AddTransient<DataExportViewModelFactory>();
-            services.AddTransient<SetPriorityVVmFactory>();
-
+            services.AddSingleton<IFolderPicker, FolderPicker>();
+            services.AddSingleton<Func<DataType, BaseDataExporter>>(sp => dataType => dataType switch
+            {
+                DataType.Csv => new CsvExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
+                DataType.Txt => new TxtExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
+                DataType.Xlsx => new ExcelExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
+                DataType.Json => new JsonExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
+                DataType.Xml => new XmlExporter(sp.GetRequiredService<ISettingsService>(), sp.GetRequiredService<ILogger<BaseDataExporter>>()),
+                _ => throw new ArgumentOutOfRangeException(nameof(dataType), dataType, null),
+            });
+            services.AddSingleton<IWindowService, WindowService>();
 
             // Register ViewModels
             services.AddSingleton<MainWindowViewModel>();
-            services.AddTransient<SettingsWindowViewModel>();
 
             // Register Views
             services.AddSingleton<MainWindow>(sp =>
@@ -126,17 +128,16 @@ namespace TaskManager
                     DataContext = sp.GetRequiredService<MainWindowViewModel>()
                 };
             });
-
-            services.AddTransient<DataExportWindow>();
-            services.AddTransient<SettingsWindow>(sp => new SettingsWindow
-            {
-                DataContext = sp.GetRequiredService<SettingsWindowViewModel>()
-            });
         }
 
-        private void LaunchGUI() {
+        private void LaunchGUI()
+        {
             MainWindow mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            // Single startup point: initial load + polling start. Failures route through
+            // IErrorHandler.GuardAsync inside InitializeCommand and are logged, not fatal.
+            _ = _serviceProvider.GetRequiredService<MainWindowViewModel>().InitializeCommand.ExecuteAsync(null);
         }
 
         private void Application_Exit(object sender, ExitEventArgs e) {

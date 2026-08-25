@@ -1,24 +1,23 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Input;
-using TaskManager.Domain.Abstractions;
 using TaskManager.Abstractions;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
-using TaskManager.Domain.Services;
-using TaskManager.Services.ErrorHandling;
-using TaskManager.Resources.Languages;
-using TaskManager.UI.Views;
 using TaskManager.Domain.Primitives;
+using TaskManager.Resources.Languages;
+using TaskManager.Services.ErrorHandling;
 using TaskManager.UI.Localization;
-using TaskManager.ViewModels.Abstraction;
 
 namespace TaskManager.ViewModels
 {
     /// <summary>
-    /// Viewmodel for <see cref="SetPriorityWindow"/>
+    /// Viewmodel for SetPriorityWindow. Applies the chosen priority through the catalog,
+    /// reports partial failures as data, then raises RequestClose (host window closes).
     /// </summary>
-    internal class SetPriorityWindowViewModel : ViewModelBase
+    internal class SetPriorityWindowViewModel : ObservableObject, IRequestCloseObservable
     {
         public IList<string> Priorities { get; } = PriorityTypeHelper.GetAllLocalized().ToList();
 
@@ -26,19 +25,20 @@ namespace TaskManager.ViewModels
 
         public ICommand OnConfirmCommand { get; }
 
-        private readonly IMessageService _messageService;
-        private readonly ProcessManager _processManager;
-        private readonly ProcessOperationsService _processOps;
-        private readonly IErrorHandler _errorHandler;
+        public event EventHandler? RequestClose;
 
+        public bool Confirmed { get; private set; }
+
+        private readonly IMessageService _messageService;
+        private readonly IProcessListCatalog _catalog;
+        private readonly IErrorHandler _errorHandler;
         private readonly IReadOnlyCollection<int> _processIds;
 
-        public SetPriorityWindowViewModel(IMessageService messageService, ProcessManager processManager,
-            ProcessOperationsService processOps, IReadOnlyCollection<int> processes, IErrorHandler errorHandler)
+        public SetPriorityWindowViewModel(IMessageService messageService, IProcessListCatalog catalog,
+            IReadOnlyCollection<int> processes, IErrorHandler errorHandler)
         {
             _messageService = messageService;
-            _processManager = processManager;
-            _processOps = processOps;
+            _catalog = catalog;
             _processIds = processes;
             _errorHandler = errorHandler;
             OnConfirmCommand = new RelayCommand(OnConfirm);
@@ -50,16 +50,16 @@ namespace TaskManager.ViewModels
             {
                 if (Priority == null)
                 {
-                    _messageService.ShowMessage(Strings.Select, Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                    _messageService.ShowMessage(Strings.Select, Strings.Error,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                var summary = _processOps.SetPriority(_processIds, (ProcessPriorityClass)Priority,
-                    pid => _processManager.WritebackPriority(pid, ProcessBasePriority.Get((ProcessPriorityClass)Priority)));
+                var summary = _catalog.SetPriority(_processIds, (ProcessPriorityClass)Priority);
                 ReportPartialFailures(summary);
 
-                var window = GetAssociatedWindow<SetPriorityWindow>();
-                window?.Close();
+                Confirmed = true;
+                RequestClose?.Invoke(this, EventArgs.Empty);
             }, "applying the selected priority");
         }
 
@@ -70,9 +70,7 @@ namespace TaskManager.ViewModels
                 return;
             }
 
-            var total = summary.SucceededPids.Count + summary.Failures.Count;
-            _messageService.ShowMessage(
-                string.Format(Strings.OpsCompletedWithFailuresFormat, summary.SucceededPids.Count, total),
+            _messageService.ShowMessage(OperationSummaryReporter.FormatPartialFailures(summary),
                 Strings.Error, MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }

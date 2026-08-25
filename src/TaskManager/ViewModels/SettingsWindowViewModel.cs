@@ -1,19 +1,18 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows.Input;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
 using TaskManager.Services.ErrorHandling;
-using TaskManager.UI.Views;
 using TaskManager.Domain.Primitives;
 using TaskManager.UI.Localization;
-using TaskManager.ViewModels.Abstraction;
 
 namespace TaskManager.ViewModels
 {
     /// <summary>
     /// Viewmodel for <see cref="SettingsWindow"/>
     /// </summary>
-    internal class SettingsWindowViewModel : ViewModelBase
+    internal class SettingsWindowViewModel : ObservableObject
     {
         private readonly ISettingsService _settingsService;
         private readonly IErrorHandler _errorHandler;

@@ -1,134 +1,104 @@
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.DependencyInjection;
 using System.Windows;
 using System.Windows.Input;
-using TaskManager.Domain.Abstractions;
 using TaskManager.Abstractions;
+using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
-using TaskManager.Services;
-using TaskManager.Services.Factories;
-using TaskManager.Services.ErrorHandling;
-using TaskManager.Resources.Languages;
-using TaskManager.UI.Views;
+using TaskManager.Domain.Services.DataExport;
 using TaskManager.Domain.Primitives;
-using TaskManager.ViewModels.Abstraction;
+using TaskManager.Resources.Languages;
+using TaskManager.Services.ErrorHandling;
 
 namespace TaskManager.ViewModels
 {
     /// <summary>
-    /// Viewmodel for <see cref="DataExportWindow"/>
+    /// Viewmodel for DataExportWindow. Exports a fixed, materialized process snapshot via
+    /// the composition-root-supplied exporter factory; modeled failures are reported as data.
     /// </summary>
-    internal class DataExportWindowViewModel : ViewModelBase
-	{
-		#region All_Fields
-		private readonly FolderSelector _folderSelector = new FolderSelector();
+    internal class DataExportWindowViewModel : ObservableObject, IRequestCloseObservable
+    {
+        public ExportationType? Exportation { get; set => SetProperty(ref field, value); }
 
-		public ExportationType? Exportation { get; set => SetProperty(ref field, value); }
+        public DataType? DataType { get; set => SetProperty(ref field, value); }
 
-		public DataType? DataType { get; set => SetProperty(ref field, value); }
+        public string DirPath { get; set => SetProperty(ref field, value); } = string.Empty;
 
-		public string DirPath
-		{
-			get;
-			set
-			{
-				if (SetProperty(ref field, value))
-				{
-					_folderSelector.DirPath = value;
-				}
-			}
-		} = string.Empty;
+        public IList<ExportationType> Exportations { get; } = Enum.GetValues<ExportationType>();
+        public IList<DataType> Extensions { get; } = Enum.GetValues<DataType>();
 
-		public IList<ExportationType> Exportations { get; } = Enum.GetValues<ExportationType>();
-		public IList<DataType> Extensions { get; } = Enum.GetValues<DataType>();
+        public ICommand SelectFolderCommand { get; }
+        public ICommand OnConfirmClick { get; }
 
-		private void FolderSelector_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
-		{
-			if (e.PropertyName == nameof(FolderSelector.DirPath))
-			{
-				OnPropertyChanged(nameof(DirPath));
-				this.DirPath = _folderSelector.DirPath;
-			}
-		}
+        public event EventHandler? RequestClose;
 
-		private readonly IReadOnlyList<Process> _processes;
+        public bool Confirmed { get; private set; }
 
-		public ICommand SelectFolderCommand { get; }
-		public ICommand OnConfirmClick { get; }
-		#endregion
+        private readonly IReadOnlyList<Process> _processes;
+        private readonly Func<DataType, BaseDataExporter> _exporterFactory;
+        private readonly IFolderPicker _folderPicker;
+        private readonly IMessageService _messageService;
+        private readonly IErrorHandler _errorHandler;
 
-		private readonly IServiceProvider _serviceProvider;
-        private readonly ISettingsService _settings;
-		private readonly IMessageService _messageService;
-		private readonly IErrorHandler _errorHandler;
+        public DataExportWindowViewModel(IMessageService messageService, IErrorHandler errorHandler,
+            Func<DataType, BaseDataExporter> exporterFactory, IFolderPicker folderPicker,
+            IReadOnlyList<Process> processes)
+        {
+            _messageService = messageService;
+            _errorHandler = errorHandler;
+            _exporterFactory = exporterFactory;
+            _folderPicker = folderPicker;
+            _processes = processes.ToArray(); // hold a materialized copy; caller may mutate afterwards
 
-		public DataExportWindowViewModel(IServiceProvider serviceProvider,
-			ISettingsService settings,
-			IMessageService messageService,
-			IErrorHandler errorHandler,
-			IReadOnlyList<Process> processes)
-		{
-            _serviceProvider = serviceProvider;
-            _settings = settings;
-			_messageService = messageService;
-			_errorHandler = errorHandler;
-            _processes = processes.ToArray();
-
-            SelectFolderCommand = new RelayCommand(_folderSelector.SelectFolder);
+            SelectFolderCommand = new RelayCommand(SelectFolder);
             OnConfirmClick = new RelayCommand(OnConfirm);
-
-            _folderSelector.PropertyChanged += FolderSelector_PropertyChanged;
         }
 
-		private void OnConfirm()
-		{
-			_errorHandler.Guard(() =>
-			{
-				if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
-				{
-					_messageService.ShowMessage("You need to select options", Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-					return;
-				}
+        private void SelectFolder() => DirPath = _folderPicker.PickFolder() ?? string.Empty;
 
-				if (!TryExport(exportation, dataType))
-				{
-					return; // failure already reported; keep the window open for a corrected attempt
-				}
+        private void OnConfirm()
+        {
+            _errorHandler.Guard(() =>
+            {
+                if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
+                {
+                    _messageService.ShowMessage("You need to select options", Strings.Error,
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
 
-				GetAssociatedWindow<DataExportWindow>().DialogResult = true;
-			}, "exporting process data");
-		}
+                if (!TryExport(dataType))
+                {
+                    return; // failure already reported; keep the window open for a corrected attempt
+                }
 
-		internal bool TryExport(ExportationType exportation, DataType dataType)
-		{
-			return _errorHandler.Guard(() =>
-			{
-				var exporter = _serviceProvider.GetRequiredService<DataExporterFactory>().CreateDataExporter(dataType);
+                Confirmed = true;
+                RequestClose?.Invoke(this, EventArgs.Empty);
+            }, "exporting process data");
+        }
 
-				switch (exportation)
-				{
-					case ExportationType.Processes:
-						var result = exporter.Export(DirPath, _processes);
-						if (result.IsSuccess)
-						{
-							return true;
-						}
+        internal bool TryExport(DataType dataType)
+        {
+            return _errorHandler.Guard(() =>
+            {
+                var result = _exporterFactory(dataType).Export(DirPath, _processes);
+                if (result.IsSuccess)
+                {
+                    return true;
+                }
 
-						_messageService.ShowMessage(
-							string.Format(Strings.ExportFailedFormat, DirPath) + " " + DescribeFailure(result.FailureReason!.Value),
-							Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
-						return false;
-				}
+                _messageService.ShowMessage(
+                    string.Format(Strings.ExportFailedFormat, DirPath) + " " + DescribeFailure(result.FailureReason!.Value),
+                    Strings.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }, "exporting process data");
+        }
 
-				return false;
-			}, "exporting process data");
-		}
-
-		private static string DescribeFailure(ExportFailureReason reason) => reason switch
-		{
-			ExportFailureReason.AccessDenied => Strings.ExportFailedAccessDenied,
-			ExportFailureReason.InvalidPath => Strings.ExportFailedInvalidPath,
-			_ => Strings.ExportFailedIo
-		};
-	}
+        private static string DescribeFailure(ExportFailureReason reason) => reason switch
+        {
+            ExportFailureReason.AccessDenied => Strings.ExportFailedAccessDenied,
+            ExportFailureReason.InvalidPath => Strings.ExportFailedInvalidPath,
+            _ => Strings.ExportFailedIo
+        };
+    }
 }
