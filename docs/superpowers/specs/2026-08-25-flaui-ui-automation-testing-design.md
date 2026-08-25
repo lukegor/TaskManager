@@ -29,8 +29,9 @@
 1. Creates throwaway temp dirs; generates a run-unique instance suffix.
 2. Launches the exe through FlaUI with env vars set (see §4).
 3. Asserts the SPAWNED PID owns a window ~2 s after launch — if the single-instance guard bounced the launch, the test fails loudly with exit code + redirected-log tail instead of silently automating the wrong process.
-4. Wraps `Application` + `UIA3Automation` lifetime; teardown closes, kills, deletes temp dirs.
+ 4. Wraps `Application` + `UIA3Automation` lifetime; teardown closes, kills, deletes temp dirs.
 
+ 5. Redirect proof: before any test runs, the fixture asserts the redirected SETTINGS dir now contains the freshly written settings file - evidence the env redirect took effect (AC5).
 **Page objects** (`Pages/`): `MainWindowPage`, `SettingsDialogPage`, `AboutDialogPage`, plus a `MessageBoxHelper`. All lookups go through FlaUI retry waits (`Retry.WhileNull`, 10 s ceilings, no `Thread.Sleep`). Finders key on window title, visible content/menu labels, or localized strings pulled from `TaskManager.Resources.Languages.Strings` via the project reference — assertions survive relabeling only when labels change intentionally.
 
 **`VictimFactory`**: copies `cmd.exe` to `%TEMP%\<guid>.exe`, starts it hidden (`CreateNoWindow`, `/c ping -n 60 …`), exposes unique process name + PID; guaranteed kill in cleanup. Gives terminate/priority tests a collision-proof, safely-killable row among hundreds of real processes.
