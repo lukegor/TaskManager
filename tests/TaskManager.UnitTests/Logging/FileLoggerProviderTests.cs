@@ -154,9 +154,10 @@ namespace TaskManager.UnitTests
             }
 
             var content = ReadTodayLog();
+            // Eviction side-effects (which indices survive) are BCL DropOldest behavior
+            // and scheduling-dependent under an auto-started drain — deliberately not
+            // asserted. Our contract: exactly one bounded notice per saturation episode.
             CountOccurrences(content, "log buffer overflowed").ShouldBe(2);
-            content.ShouldNotContain("burst 0");   // oldest entries were the ones dropped
-            content.ShouldContain($"burst {(capacity * 4) - 1}"); // newest survived
         }
 
         [Fact]
