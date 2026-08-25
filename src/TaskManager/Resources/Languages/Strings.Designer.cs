@@ -387,6 +387,15 @@ namespace TaskManager.Resources.Languages {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to You need to select options.
+        /// </summary>
+        public static string SelectOptionsRequired {
+            get {
+                return ResourceManager.GetString("SelectOptionsRequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Set priority.
         /// </summary>
         public static string SetPriority {

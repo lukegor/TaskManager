@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
 using TaskManager.Abstractions;
 using TaskManager.Domain.Abstractions;
 using TaskManager.Domain.Models;
@@ -61,8 +60,6 @@ namespace TaskManager.ViewModels
         #endregion
 
         #region PureUI_Bindings
-        public ImageSource? MonitoringButtonIcon { get; set => SetProperty(ref field, value); }
-
         public int SelectedTabIndex { get; set => SetProperty(ref field, value); }
         #endregion
 

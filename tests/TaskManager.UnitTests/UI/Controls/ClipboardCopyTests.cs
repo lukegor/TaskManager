@@ -65,7 +65,7 @@ namespace TaskManager.UnitTests.UI.Controls
         }
 
         [WpfFact]
-        public void CopyMultipleRows_JoinsFormatterOutputWithNewlines()
+        public async Task CopyMultipleRows_JoinsFormatterOutputWithNewlines()
         {
             List<ProcessItem> items = GridTestHost.CreateItems(("alpha", 10), ("beta", 20), ("gamma", 30));
             BetterDataGrid grid = GridTestHost.CreateGrid(items);
@@ -79,7 +79,17 @@ namespace TaskManager.UnitTests.UI.Controls
             string expected = string.Join(Environment.NewLine,
                 items[0].Process.ToDelimitedString('\t'),
                 items[2].Process.ToDelimitedString('\t'));
-            GetTextWithRetry().ShouldBe(expected);
+
+            // the process shares the live system clipboard with other apps; wait for OUR
+            // write to land instead of racing a single read against external activity
+            string actual = string.Empty;
+            var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(5);
+            while (DateTime.UtcNow < deadline && (actual = GetTextWithRetry()) != expected)
+            {
+                await Task.Delay(25);
+            }
+
+            actual.ShouldBe(expected);
         }
 
         [WpfFact]

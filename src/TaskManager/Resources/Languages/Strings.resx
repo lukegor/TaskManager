@@ -198,6 +198,9 @@
   <data name="SelectProcess" xml:space="preserve">
     <value>Select at least 1 process</value>
   </data>
+  <data name="SelectOptionsRequired" xml:space="preserve">
+    <value>You need to select options</value>
+  </data>
   <data name="Exportation" xml:space="preserve">
     <value>Exportation</value>
   </data>

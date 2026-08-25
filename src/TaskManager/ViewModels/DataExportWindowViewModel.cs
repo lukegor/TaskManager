@@ -62,7 +62,7 @@ namespace TaskManager.ViewModels
             {
                 if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
                 {
-                    _messageService.ShowMessage("You need to select options", Strings.Error,
+                    _messageService.ShowMessage(Strings.SelectOptionsRequired, Strings.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
