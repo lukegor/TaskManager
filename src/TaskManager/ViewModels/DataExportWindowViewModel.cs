@@ -28,7 +28,7 @@ namespace TaskManager.ViewModels
         public IList<DataType> Extensions { get; } = Enum.GetValues<DataType>();
 
         public ICommand SelectFolderCommand { get; }
-        public ICommand OnConfirmClick { get; }
+        public AsyncRelayCommand OnConfirmClick { get; }
 
         public event EventHandler? RequestClose;
 
@@ -51,23 +51,23 @@ namespace TaskManager.ViewModels
             _processes = processes.ToArray(); // hold a materialized copy; caller may mutate afterwards
 
             SelectFolderCommand = new RelayCommand(SelectFolder);
-            OnConfirmClick = new RelayCommand(OnConfirm);
+            OnConfirmClick = new AsyncRelayCommand(OnConfirmAsync);
         }
 
         private void SelectFolder() => DirPath = _folderPicker.PickFolder() ?? string.Empty;
 
-        private void OnConfirm()
+        private async Task OnConfirmAsync()
         {
-            _errorHandler.Guard(() =>
+            await _errorHandler.GuardAsync(async () =>
             {
-                if (Exportation is not ExportationType exportation || DataType is not DataType dataType)
+                if (Exportation is not ExportationType || DataType is not DataType dataType)
                 {
                     _messageService.ShowMessage(Strings.SelectOptionsRequired, Strings.Error,
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
-                if (!TryExport(dataType))
+                if (!await TryExportAsync(dataType))
                 {
                     return; // failure already reported; keep the window open for a corrected attempt
                 }
@@ -77,11 +77,13 @@ namespace TaskManager.ViewModels
             }, "exporting process data");
         }
 
-        internal bool TryExport(DataType dataType)
+        internal async Task<bool> TryExportAsync(DataType dataType)
         {
-            return _errorHandler.Guard(() =>
+            return await _errorHandler.GuardAsync(async () =>
             {
-                var result = _exporterFactory(dataType).Export(DirPath, _processes);
+                // exporters are stateless per call; ClosedXML workbooks can take seconds,
+                // so the file generation runs off the UI thread
+                var result = await Task.Run(() => _exporterFactory(dataType).Export(DirPath, _processes));
                 if (result.IsSuccess)
                 {
                     return true;

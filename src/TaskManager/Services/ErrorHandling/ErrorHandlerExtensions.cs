@@ -31,6 +31,20 @@ namespace TaskManager.Services.ErrorHandling
             }
         }
 
+        public static async Task<T> GuardAsync<T>(this IErrorHandler errorHandler, Func<Task<T>> operation,
+            [CallerMemberName] string operationContext = "")
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex)
+            {
+                errorHandler.Handle(ex, operationContext);
+                return default!;
+            }
+        }
+
         public static T Guard<T>(this IErrorHandler errorHandler, Func<T> operation,
             [CallerMemberName] string operationContext = "")
         {

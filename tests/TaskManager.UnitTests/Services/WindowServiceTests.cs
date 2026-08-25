@@ -60,7 +60,7 @@ namespace TaskManager.UnitTests.Services
         }
 
         [WpfFact]
-        public void CreateExportDialog_SeedsWithMaterializedProcesses()
+        public async Task CreateExportDialog_SeedsWithMaterializedProcesses()
         {
             var directory = Path.Combine(Path.GetTempPath(), $"tm-winsvc-{Guid.NewGuid():N}");
             Directory.CreateDirectory(directory);
@@ -77,7 +77,7 @@ namespace TaskManager.UnitTests.Services
 
                 processes.Clear(); // caller-side mutation must not leak into the dialog
 
-                viewModel.TryExport(DataTypeEnum.Txt).ShouldBeTrue();
+                (await viewModel.TryExportAsync(DataTypeEnum.Txt)).ShouldBeTrue();
 
                 var written = File.ReadAllLines(Directory.GetFiles(directory, "record-*").Single());
                 written.Count(line => line.Contains("p1")).ShouldBe(1); // snapshot survived the Clear()

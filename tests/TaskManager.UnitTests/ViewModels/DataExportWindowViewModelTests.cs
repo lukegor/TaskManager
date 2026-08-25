@@ -49,23 +49,23 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void TryExport_Success_WritesFileAndReturnsTrue()
+        public async Task TryExport_Success_WritesFileAndReturnsTrue()
         {
             _registeredExporters[DataTypeEnum.Txt] =
                 new TxtExporter(NewSettings(), NullLogger<TxtExporter>.Instance);
 
-            var success = _viewModel.TryExport(DataTypeEnum.Txt);
+            var success = await _viewModel.TryExportAsync(DataTypeEnum.Txt);
 
             success.ShouldBeTrue();
             Directory.GetFiles(_tempDirectory, "record-*").ShouldNotBeEmpty();
         }
 
         [Fact]
-        public void TryExport_Failure_ShowsSingleMessageAndReturnsFalse()
+        public async Task TryExport_Failure_ShowsSingleMessageAndReturnsFalse()
         {
             _registeredExporters[DataTypeEnum.Txt] = new ThrowingExporter(NewSettings());
 
-            var success = _viewModel.TryExport(DataTypeEnum.Txt);
+            var success = await _viewModel.TryExportAsync(DataTypeEnum.Txt);
 
             success.ShouldBeFalse();
             _messageService.Received(1).ShowMessage(
@@ -73,15 +73,15 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void TryExport_UnexpectedFactoryCrash_IsGuardedAndReturnsFalse()
+        public async Task TryExport_UnexpectedFactoryCrash_IsGuardedAndReturnsFalse()
         {
             _selectorCrash = new InvalidOperationException("factory exploded");
 
-            _viewModel.TryExport(DataTypeEnum.Txt).ShouldBeFalse();
+            (await _viewModel.TryExportAsync(DataTypeEnum.Txt)).ShouldBeFalse();
         }
 
         [Fact]
-        public void Constructor_HoldsMaterializedSnapshot_IgnoringLaterCallerMutations()
+        public async Task Constructor_HoldsMaterializedSnapshot_IgnoringLaterCallerMutations()
         {
             var processes = new List<Process>
             {
@@ -95,7 +95,7 @@ namespace TaskManager.UnitTests.ViewModels
 
             processes.Clear(); // caller-side mutation after handoff must not leak into the dialog
 
-            vm.TryExport(DataTypeEnum.Txt).ShouldBeTrue();
+            (await vm.TryExportAsync(DataTypeEnum.Txt)).ShouldBeTrue();
 
             var written = File.ReadAllLines(Directory.GetFiles(_tempDirectory, "record-*").Single());
             written.Count(line => line.Contains("p1")).ShouldBe(1);
@@ -125,12 +125,12 @@ namespace TaskManager.UnitTests.ViewModels
         }
 
         [Fact]
-        public void OnConfirm_MissingOptions_ShowsError_DoesNotClose()
+        public async Task OnConfirm_MissingOptions_ShowsError_DoesNotClose()
         {
             var closed = false;
             _viewModel.RequestClose += (_, _) => closed = true;
 
-            _viewModel.OnConfirmClick.Execute(null);
+            await _viewModel.OnConfirmClick.ExecuteAsync(null);
 
             _messageService.Received(1).ShowMessage(
                 Arg.Any<string>(), Arg.Any<string>(), MessageBoxButton.OK, MessageBoxImage.Error);
