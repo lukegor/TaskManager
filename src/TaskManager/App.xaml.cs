@@ -41,11 +41,9 @@ namespace TaskManager
             _serviceProvider = serviceCollection.BuildServiceProvider();
 
             // Startup marker: first durable trace; also the UI-test fixture's proof
-
             // that environment redirection took effect.
             _serviceProvider.GetRequiredService<ILogger<App>>()
                 .LogInformation("Application starting");
-
 
             RegisterGlobalExceptionHandlers();
 

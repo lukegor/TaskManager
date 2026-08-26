@@ -44,20 +44,34 @@ namespace TaskManager.UiAutomationTests
             psi.EnvironmentVariables[TaskManagerEnvironment.LogDir] = _logDir;
             psi.EnvironmentVariables[TaskManagerEnvironment.InstanceName] = InstanceName;
 
-            App = Application.Launch(psi);
-
-            ProcessId = App.ProcessId;
-            Automation = new UIA3Automation();
-
-            // Constructor failure must never leak a running app instance.
+            // A hard-killed predecessor leaves its logs behind; a stale dir would make
+            // the redirect proof pass vacuously. Clean slate before launch.
             try
             {
+                if (Directory.Exists(_logDir))
+                {
+                    Directory.Delete(_logDir, recursive: true);
+                }
+            }
+            catch
+            {
+                // if deletion fails the proof may be weaker this run - not fatal
+            }
+
+            var app = Application.Launch(psi);
+            ProcessId = app.ProcessId;
+            var automation = new UIA3Automation();
+
+            try
+            {
+                App = app;
+                Automation = automation;
                 InitializeSession();
             }
             catch
             {
-                try { App.Kill(); } catch { }
-                Automation.Dispose();
+                try { app.Kill(); } catch { }
+                try { automation.Dispose(); } catch { }
                 throw;
             }
         }
@@ -108,7 +122,7 @@ namespace TaskManager.UiAutomationTests
 
             _disposed = true;
             try { App.Close(); } catch { /* already gone */ }
-            App.Kill();
+            try { App.Kill(); } catch { /* already gone */ }
             Automation.Dispose();
 
             try
