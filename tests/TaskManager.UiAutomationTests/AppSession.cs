@@ -82,7 +82,13 @@ namespace TaskManager.UiAutomationTests
             // plain Process.Start - guaranteed env delivery - and attach FlaUI by PID.
             using var startedProcess = Process.Start(startInfo)!;
             ProcessId = startedProcess.Id;
-            var automation = new UIA3Automation();
+            // Virtualization-off means ~500 realized rows: UIA tree walks are slow,
+            // so lift FlaUI's default COM ceilings for this session.
+            var automation = new UIA3Automation
+            {
+                ConnectionTimeout = TimeSpan.FromMinutes(2),
+                TransactionTimeout = TimeSpan.FromMinutes(2),
+            };
             var app = Application.Attach(startedProcess.Id);
 
             try
@@ -104,9 +110,9 @@ namespace TaskManager.UiAutomationTests
             // A bounced launch (guard misfire / startup crash) must fail loudly,
             // not silently automate some unrelated process.
             var window = Retry.WhileNull(
-                () => App.GetMainWindow(Automation, TimeSpan.FromMilliseconds(250)),
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromMilliseconds(250)).Result;
+                () => App.GetMainWindow(Automation, TimeSpan.FromSeconds(5)),
+                TimeSpan.FromSeconds(60),
+                TimeSpan.FromMilliseconds(500)).Result;
 
             window.ShouldNotBeNull("main window did not appear within 10 s");
             window.Properties.ProcessId.Value.ShouldBe(

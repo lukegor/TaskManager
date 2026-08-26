@@ -86,17 +86,31 @@ namespace TaskManager.UiAutomationTests.Pages
         /// windows, so misses fall back to sweeping every top-level window of the
         /// process before failing.
         /// </summary>
+        // TODO(UIA): MenuItem InvokePattern silently no-ops routed commands when driven
+        // headlessly - see docs/debugging/flaui-menu-invoke-investigation.md before relying
+        // on InvokeMenu for command-carrying leaves (About/Settings navigation is safe).
         public void InvokeMenu(params string[] headers)
         {
             AutomationElement current = _window;
             foreach (var header in headers)
             {
+                // Expanding the PARENT must happen before searching for the next
+                // header: WPF generates submenu containers lazily on first expand.
+                if (!ReferenceEquals(current, _window))
+                {
+                    var expandCollapse = current.Patterns.ExpandCollapse;
+                    if (expandCollapse.IsSupported && expandCollapse.Pattern.ExpandCollapseState != ExpandCollapseState.Expanded)
+                    {
+                        expandCollapse.Pattern.Expand();
+                    }
+                }
+
                 // Expanded WPF menus reparent submenus into popup windows: prefer the
                 // LIVE popup instance (sweep across top-level windows) over the stale
                 // pre-expansion container that may linger in the parent's logical
                 // subtree - invoking the stale peer silently no-ops the command.
                 var element = FindMenuElementAnywhere(header) ??
-                              FindMenuElement(parent, header);
+                              FindMenuElement(current, header);
 
                 if (element is null)
                 {
@@ -110,12 +124,6 @@ namespace TaskManager.UiAutomationTests.Pages
                 element.ShouldNotBeNull($"menu element '{header}' not found");
 
                 current = element;
-
-                var expandCollapse = current.Patterns.ExpandCollapse;
-                if (expandCollapse.IsSupported && expandCollapse.Pattern.ExpandCollapseState != ExpandCollapseState.Expanded)
-                {
-                    expandCollapse.Pattern.Expand();
-                }
             }
 
             var invoke = current.Patterns.Invoke;
