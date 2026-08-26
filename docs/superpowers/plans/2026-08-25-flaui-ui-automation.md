@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **RULING (post-first-execution, product owner):** this suite is STRICTLY CI-only. Local execution is prohibited entirely - FlaUI input simulation moves the user's real cursor and sends synthetic keystrokes to their desktop. All validation happens on GitHub runners; the runner script and any local invocation path were removed.
+
 **Goal:** A FlaUI-driven E2E suite (10 behavior tests over the real exe) that structurally cannot run during default builds/tests — CI-only, with deliberate manual opt-in.
 
 **Architecture:** New out-of-solution test project launches the real exe via FlaUI with three environment redirects (settings dir, log dir, instance-name suffix) honored by small production hooks; page objects expose behavioral lookups (titles, visible labels from the app's own `Strings` resource, process liveness); a collection fixture owns exactly one app session per run.

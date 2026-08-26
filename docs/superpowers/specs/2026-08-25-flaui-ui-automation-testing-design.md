@@ -1,5 +1,7 @@
 # FlaUI UI-Automation Test Suite — Design
 
+> **RULING (post-first-execution, product owner):** this suite is STRICTLY CI-only. Local execution is prohibited entirely - FlaUI input simulation moves the user's real cursor and sends synthetic keystrokes to their desktop. All validation happens on GitHub runners; the runner script and any local invocation path were removed.
+
 - **Date:** 2026-08-25
 - **Status:** Approved (brainstorming session)
 - **Constraint (product owner):** running tests must NEVER open windows or processes visible on the developer's PC. Verified baseline: existing unit/integration suites are hermetic (integration victims are invisible `cmd.exe /c ping` with `CreateNoWindow=true`).
