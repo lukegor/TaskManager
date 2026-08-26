@@ -23,7 +23,7 @@ namespace TaskManager.UiAutomationTests
         }
 
         private AutomationElement MainWindowElement =>
-            _session.App.GetMainWindow(_session.Automation, TimeSpan.FromSeconds(5));
+            _session.App.GetMainWindow(_session.Automation, TimeSpan.FromSeconds(5))!;
 
         private bool HasTopLevelWindow(string title) =>
             _session.App.GetAllTopLevelWindows(_session.Automation).Any(w => w.Title == title);

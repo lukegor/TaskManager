@@ -17,7 +17,8 @@ namespace TaskManager.UiAutomationTests
         {
             _session.AssertAlive();
 
-            var window = _session.App.GetMainWindow(_session.Automation, TimeSpan.FromSeconds(5));
+            // fixture ctor already asserted non-null + PID ownership; 5.x annotations just lag that guarantee
+            var window = _session.App.GetMainWindow(_session.Automation, TimeSpan.FromSeconds(5))!;
             var page = new MainWindowPage(window);
 
             page.Title.ShouldBe(AppSession.MainWindowTitle);

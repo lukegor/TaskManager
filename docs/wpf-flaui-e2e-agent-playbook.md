@@ -48,7 +48,7 @@ Structural enforcement checklist:
 - Suffixed (automation) instances must never activate foreign windows: guard
   activation behind "is this the unsuffixed production namespace".
 
-## 3. FlaUI 4.x API facts (each one broke against a plan drafted from memory)
+## 3. FlaUI API facts (each one broke against a plan drafted from memory; verified on 4.0.0, re-verified on 5.0.0)
 
 | Drafted-from-memory assumption | Reality (FlaUI.UIA3 4.0.0) |
 | --- | --- |
