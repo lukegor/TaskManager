@@ -27,8 +27,8 @@ if ($LASTEXITCODE -ne 0) { Write-Error "build failed ($LASTEXITCODE)"; exit $LAS
 $exe = Join-Path $PSScriptRoot "..\tests\TaskManager.UiAutomationTests\bin\$Configuration\net10.0-windows\TaskManager.UiAutomationTests.exe"
 if (-not (Test-Path $exe)) { Write-Error "test exe not found at $exe"; exit 1 }
 
-$out = Join-Path $env:TEMP "uia-out.log"
-$err = Join-Path $env:TEMP "uia-err.log"
+$out = Join-Path (Join-Path $PSScriptRoot "..") "artifacts\diag\uia-out.log"
+$err = Join-Path (Join-Path $PSScriptRoot "..") "artifacts\diag\uia-err.log"
 Remove-Item $out, $err -ErrorAction SilentlyContinue
 
 # MTP rejects --nologo/--timeout on this version; the poll loop IS the timeout.

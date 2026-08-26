@@ -49,6 +49,21 @@ namespace TaskManager.UiAutomationTests
             ProcessId = App.ProcessId;
             Automation = new UIA3Automation();
 
+            // Constructor failure must never leak a running app instance.
+            try
+            {
+                InitializeSession();
+            }
+            catch
+            {
+                try { App.Kill(); } catch { }
+                Automation.Dispose();
+                throw;
+            }
+        }
+
+        private void InitializeSession()
+        {
             // A bounced launch (guard misfire / startup crash) must fail loudly,
             // not silently automate some unrelated process.
             var window = Retry.WhileNull(
