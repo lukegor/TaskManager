@@ -19,7 +19,7 @@ namespace TaskManager.UiAutomationTests
         public BehaviorTests(AppSession session)
         {
             _session = session;
-            _main = new MainWindowPage(MainWindowElement);
+            _main = new MainWindowPage(_session.App, _session.Automation, MainWindowElement);
         }
 
         private AutomationElement MainWindowElement =>
@@ -119,6 +119,23 @@ namespace TaskManager.UiAutomationTests
             _session.AssertAlive();
         }
 
+        /// <summary>
+        /// Invokes the Management-menu terminate leaf and waits for the confirmation
+        /// box. A just-expanded WPF menu can swallow the first pattern Invoke (popup
+        /// placement race), so the invocation is retried once if no dialog appears.
+        /// </summary>
+        private void InvokeTerminateExpectingConfirmation()
+        {
+            _main.InvokeMenu(Strings.Management, Strings.TerminateProcesses);
+
+            if (_session.GetTopLevelWindow(Strings.Confirm) is null)
+            {
+                _main.InvokeMenu(Strings.Management, Strings.TerminateProcesses);
+            }
+
+            DismissDialog(Strings.Confirm, accept: true);
+        }
+
         [Fact]
         public void Terminate_Victim_HappyPath_KillsProcessAndRemovesRow()
         {
@@ -129,10 +146,8 @@ namespace TaskManager.UiAutomationTests
             var row = _main.FindRowContaining(victim.RowSearchText);
             row.ShouldNotBeNull($"victim row '{victim.RowSearchText}' never appeared");
 
-            // Terminate via the app menu (Invoke pattern - no real input devices).
-            _main.OpenTopLevelLeaf(Strings.Management, Strings.TerminateProcesses);
-
-            DismissDialog(Strings.Confirm, accept: true); // confirm OK
+            _main.SelectRow(row!);
+            InvokeTerminateExpectingConfirmation();
 
             victim.WaitUntilExited(TimeSpan.FromSeconds(5));
             _main.FindRowContaining(victim.RowSearchText)
@@ -150,6 +165,11 @@ namespace TaskManager.UiAutomationTests
             _main.SelectRow(row!);
 
             _main.InvokeMenu(Strings.Management, Strings.TerminateProcesses);
+            if (_session.GetTopLevelWindow(Strings.Confirm) is null)
+            {
+                _main.InvokeMenu(Strings.Management, Strings.TerminateProcesses);
+            }
+
             DismissDialog(Strings.Confirm, accept: false); // cancel = no termination
 
             victim.HasExited.ShouldBeFalse();
@@ -186,6 +206,10 @@ namespace TaskManager.UiAutomationTests
         [Fact]
         public void Terminate_WithoutSelection_ShowsValidationError()
         {
+            // two passes: a selection can sit on a row that only becomes realized
+            // (and clearable) after the first sweep scrolls past it
+            _main.DeselectAllRows();
+            Thread.Sleep(300);
             _main.DeselectAllRows();
             Console.WriteLine($"[diag] WithoutSelection: selectedRows after deselect={_main.SelectedRowCount()}");
 

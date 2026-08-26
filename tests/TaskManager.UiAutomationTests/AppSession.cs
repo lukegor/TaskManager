@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using FlaUI.Core;
 using FlaUI.Core.AutomationElements;
@@ -34,15 +35,33 @@ namespace TaskManager.UiAutomationTests
             _logDir = Path.Combine(Directory.GetCurrentDirectory(), "artifacts", "ui-test-logs");
             InstanceName = $"uitest-{Guid.NewGuid():N}";
 
-            // FlaUI 4.0.0 has no Launch(string, Action<ProcessStartInfo>) overload;
-            // environment redirects are set on an explicit ProcessStartInfo instead.
-            var psi = new ProcessStartInfo(ExePath)
+            // Deterministic locale: seed English settings BEFORE launch so menu labels
+            // match Strings.* values the tests assert against (a Polish-OS machine
+            // would otherwise boot a Polish UI and every ByName lookup would miss).
+            Directory.CreateDirectory(_settingsDir);
+            File.WriteAllText(
+                Path.Combine(_settingsDir, "settings.json"),
+                "{\"Version\":1,\"Settings\":{\"Language\":\"English\",\"ProcessesRefreshFrequency\":\"Low\",\"DateTimeFormat\":\"yyyy_MM_dd--HH_mm_ss\"}}");
+
+            // Pin the TEST host to the same locale so Strings.* resolves identically.
+            var english = new CultureInfo("en-US");
+            CultureInfo.DefaultThreadCurrentUICulture = english;
+            CultureInfo.DefaultThreadCurrentCulture = english;
+
+            // Belt-and-braces: guarantee the child inherits the redirects even if a
+            // launch path drops per-PSI environment overrides.
+            Environment.SetEnvironmentVariable(TaskManagerEnvironment.SettingsDir, _settingsDir);
+            Environment.SetEnvironmentVariable(TaskManagerEnvironment.LogDir, _logDir);
+            Environment.SetEnvironmentVariable(TaskManagerEnvironment.InstanceName, InstanceName);
+
+            var startInfo = new ProcessStartInfo(ExePath)
             {
-                UseShellExecute = false
+                UseShellExecute = false,
             };
-            psi.EnvironmentVariables[TaskManagerEnvironment.SettingsDir] = _settingsDir;
-            psi.EnvironmentVariables[TaskManagerEnvironment.LogDir] = _logDir;
-            psi.EnvironmentVariables[TaskManagerEnvironment.InstanceName] = InstanceName;
+            startInfo.EnvironmentVariables[TaskManagerEnvironment.SettingsDir] = _settingsDir;
+            startInfo.EnvironmentVariables[TaskManagerEnvironment.LogDir] = _logDir;
+            startInfo.EnvironmentVariables[TaskManagerEnvironment.InstanceName] = InstanceName;
+            startInfo.EnvironmentVariables["TASKMANAGER_UITEST"] = "1";
 
             // A hard-killed predecessor leaves its logs behind; a stale dir would make
             // the redirect proof pass vacuously. Clean slate before launch.
@@ -58,9 +77,13 @@ namespace TaskManager.UiAutomationTests
                 // if deletion fails the proof may be weaker this run - not fatal
             }
 
-            var app = Application.Launch(psi);
-            ProcessId = app.ProcessId;
+            // FlaUI 5.0's Application.Launch(psi) drops psi.EnvironmentVariables
+            // (verified empirically: redirected log dirs never appeared). Launch via
+            // plain Process.Start - guaranteed env delivery - and attach FlaUI by PID.
+            using var startedProcess = Process.Start(startInfo)!;
+            ProcessId = startedProcess.Id;
             var automation = new UIA3Automation();
+            var app = Application.Attach(startedProcess.Id);
 
             try
             {
@@ -70,7 +93,7 @@ namespace TaskManager.UiAutomationTests
             }
             catch
             {
-                try { app.Kill(); } catch { }
+                try { app.Kill(); } catch { /* already gone */ }
                 try { automation.Dispose(); } catch { }
                 throw;
             }
@@ -90,9 +113,8 @@ namespace TaskManager.UiAutomationTests
                 ProcessId,
                 "attached window belongs to another instance - isolation is broken");
 
-            // Redirect proof: the app logs into OUR directory within moments of startup.
-            // (settings.json is written lazily on Save - it cannot serve as an early
-            // signal; the settings redirect is exercised end-to-end by H3.)
+            // Redirect proof: the app's STARTUP MARKER log lands in OUR directory
+            // within moments of launch (settings.json is written lazily on Save).
             Retry.WhileFalse(
                 () => Directory.Exists(_logDir) && Directory.EnumerateFiles(_logDir).Any(),
                 TimeSpan.FromSeconds(10)).Result.ShouldBeTrue(

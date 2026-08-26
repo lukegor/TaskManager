@@ -19,7 +19,7 @@ namespace TaskManager.UiAutomationTests
 
             // fixture ctor already asserted non-null + PID ownership; 5.x annotations just lag that guarantee
             var window = _session.App.GetMainWindow(_session.Automation, TimeSpan.FromSeconds(5))!;
-            var page = new MainWindowPage(window);
+            var page = new MainWindowPage(_session.App, _session.Automation, window);
 
             page.Title.ShouldBe(AppSession.MainWindowTitle);
 

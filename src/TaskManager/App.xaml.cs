@@ -151,12 +151,14 @@ namespace TaskManager
 
         private void LaunchGUI()
         {
-            MainWindow mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-            mainWindow.Show();
-
-            // Single startup point: initial load + polling start. Failures route through
+            // Single startup point: initial load + polling start. Kick it off BEFORE
+            // showing the window so the grid is populated (or milliseconds from it)
+            // instead of sitting empty for the first capture. Failures route through
             // IErrorHandler.GuardAsync inside InitializeCommand and are logged, not fatal.
             _ = _serviceProvider.GetRequiredService<MainWindowViewModel>().InitializeCommand.ExecuteAsync(null);
+
+            MainWindow mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
         }
 
         internal static void Restart()

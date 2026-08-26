@@ -48,6 +48,14 @@ namespace TaskManager.UI.Controls
 
         public BetterDataGrid()
         {
+            // Test-mode hook: FlaUI/UIA only sees viewport-realized rows when row
+            // virtualization is on, making off-screen rows unautomatable. The E2E
+            // suite launches with TASKMANAGER_UITEST=1 to realize every row.
+            if (Environment.GetEnvironmentVariable("TASKMANAGER_UITEST") == "1")
+            {
+                EnableRowVirtualization = false;
+            }
+
             CommandBindings.Add(new CommandBinding(CopyRowsCommand, OnCopyRowsExecuted, OnCopyRowsCanExecute));
             MouseRightButtonDown += OnMouseRightButtonDown;
         }
