@@ -60,11 +60,8 @@ Conventions for new code:
 - Categories come from `ILogger<T>` of the owning type.
 - LoggerMessage source generation (CA1848) is deliberately deferred.
 
-## Development notes
+## Disclaimer
 
-- Automated validation must never open windows or launch the GUI. Run
-  `dotnet test` only; interactive checks that start the app (including UAC
-  prompts) require an explicit human request first.
-## Design docs
+This application can interact with and manage Windows processes, including changing process priorities and terminating processes. Terminating or modifying system-critical processes may cause application failures, data loss, system instability, or other unintended behavior.
 
-Architecture decisions and plans live under `docs/superpowers/` (`specs/`, `plans/`).
+Use these features with appropriate caution. The author is not responsible for damage, data loss, system instability, or other consequences resulting from the use or misuse of this software.
